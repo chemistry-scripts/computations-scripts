@@ -19,7 +19,7 @@ def main():
     init()
 
     # Retrieve settings from input file
-    settings = get_settings_from_t21(input_file)
+    settings = get_settings(args)
 
     geometries = IRC_coordinates_from_t21(input_file)
     natoms = number_of_atoms(input_file)
@@ -36,15 +36,15 @@ def main():
     #             XYZ.write('\n')
     #         XYZ.write('\n\n')
 
-    # Prep a bunch of NBO computations
-    NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
-    # Run each job in parallel as managed by plams
-    NBO_results = [job.run() for job in NBO_jobs]
-    # NBO_values is a list of list of charges
-    NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
-    with open('NBOCharges.data', mode='w+') as output_file:
-        for i in range(0, len(NBO_values)):
-            output_file.write('     '.join(NBO_values[i])) + '\n'
+    # # Prep a bunch of NBO computations
+    # NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
+    # # Run each job in parallel as managed by plams
+    # NBO_results = [job.run() for job in NBO_jobs]
+    # # NBO_values is a list of list of charges
+    # NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
+    # with open('NBOCharges.data', mode='w+') as output_file:
+    #     for i in range(0, len(NBO_values)):
+    #         output_file.write('     '.join(NBO_values[i])) + '\n'
 
 
 def IRC_coordinates_from_t21(input_file):
@@ -69,7 +69,6 @@ def IRC_coordinates_from_t21(input_file):
     geometries_bw = t21.read('IRC_Backward', 'xyz')[0:nstep_bw * natoms * 3]
     geometries_init = t21.read('IRC', 'xyz')
 
-    print(geometries_init, sep=' ', end='\n', file=sys.stdout, flush=False)
     # Reformat geometries into a long list of geometries for each step
     geometries_bw = coordinates_from_list(geometries_bw, natoms)
     geometries_fw = coordinates_from_list(geometries_fw, natoms)
@@ -169,7 +168,7 @@ def get_input_arguments():
     parser.add_argument('-f', '--functional', type=str, nargs='?', default='BLYP-D3',
                         help='Functional used for the computation, as BLYP-D3 or BP86\n'
                              'Hyphen will split into functional/dispersion parts when applicable')
-    parser.add_argument('-r', '--relativistic', type=str, nargs='?',
+    parser.add_argument('-r', '--relativistic', type=str, nargs='?', default='None',
                         help='Relativistic effects: Scalar, Spin-Orbit or None (default)')
     parser.add_argument('-b', '--basisset', type=str, nargs='?', default='DZP',
                         help='The basis set to use for all atoms')
@@ -187,25 +186,44 @@ def get_input_arguments():
     values = dict.fromkeys(['input_file', 'functional', 'dispersion', 'relativistic',
                             'basisset', 'frozencore', 'integrationquality'])
     values['input_file'] = os.path.basename(args.input_file[0])
+    print(args)
     functional = args.functional.split('-')
+    print(functional)
     values['functional'] = functional[0]
     if len(functional) > 1:
-        values['dispersion'] = functional[1]
+        if functional[1] == 'GD3' or functional[1] == 'D3':
+            values['dispersion'] = 'Grimme3'
+        elif functional[1] == 'GD3BJ':
+            values['dispersion'] = 'Grimme3 BJDAMP'
     else:
         values['dispersion'] = None
+    values['relativistic'] = args.relativistic
     values['basisset'] = args.basisset
     values['frozencore'] = args.frozencore
     values['integrationquality'] = args.integrationquality
+    print(values)
     return values
 
 
-def get_settings_from_t21(input_file):
+def get_settings(values):
     """
-        Retrieve as much settings as possible from the input file
-        Functionals, Basis Sets, etc.
+        Retrieve settings from command line, and set them up
     """
     settings = Settings()
+    settings.input.XC.GGA = values['functional']
+    if values['dispersion'] is not None:
+        settings.input.XC.DISPERSION = values['dispersion']
+    settings.input.BASIS.type = values['basisset']
+    settings.input.BASIS.core = values['frozencore']
+    settings.input.BASIS.createoutput = 'None'
+    settings.input.NumericalQuality = values['integrationquality']
+    settings.input.RELATIVISTIC = values['relativistic'] + " ZORA"
+    settings.input.AOMAT2FILE
+    settings.input.SAVE = 'TAPE15'
+    settings.input.FULLFOCK
+    settings.input.NOPRINT = "LOGFILE"
 
+    print(settings)
     return settings
 
 
