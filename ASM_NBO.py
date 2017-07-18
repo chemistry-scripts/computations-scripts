@@ -13,7 +13,7 @@ def main():
     """
     # Retrieve command line values
     args = get_input_arguments()
-    inputFile = args['inputfile']
+    input_file = args['input_file']
 
     # Init PLAMS, Setting up a plams.$PID directory in the working dir
     init()
@@ -21,8 +21,10 @@ def main():
     # Setup blank Settings, to be updated upon reading the IRC
     settings = Settings()
 
-    geometries = IRCCoordinatesFromt21(inputFile)
-    natoms = NumberOfAtoms(inputFile)
+    settings = GetSettingsFromt21(input_file)
+
+    geometries = IRC_coordinates_from_t21(input_file)
+    natoms = number_of_atoms(input_file)
 
     # # Code to write cleanly geometris to a file.xyz in the working directory.
     # print("Writing File")
@@ -37,17 +39,17 @@ def main():
     #         XYZ.write('\n\n')
 
     # Prep a bunch of NBO computations
-    NBO_jobs = [prepareNBOComputation(geom, settings) for geom in geometries]
+    NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
     # Run each job in parallel as managed by plams
     NBO_results = [job.run() for job in NBO_jobs]
     # NBO_values is a list of list of charges
-    NBO_values = [extractNBOCharges(output, natoms) for output in NBO_results]
+    NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
     with open('NBOCharges.data', mode='w+') as output_file:
         for i in range(0, len(NBO_values)):
             output_file.write('     '.join(NBO_values[i])) + '\n'
 
 
-def IRCCoordinatesFromt21(input_file):
+def IRC_coordinates_from_t21(input_file):
     """
         Extract all data from a TAPE21 file.
     """
@@ -71,9 +73,9 @@ def IRCCoordinatesFromt21(input_file):
 
     print(geometries_init, sep=' ', end='\n', file=sys.stdout, flush=False)
     # Reformat geometries into a long list of geometries for each step
-    geometries_bw = coordinatesFromList(geometries_bw, natoms)
-    geometries_fw = coordinatesFromList(geometries_fw, natoms)
-    geometries_init = coordinatesFromList(geometries_init, natoms)
+    geometries_bw = coordinates_from_list(geometries_bw, natoms)
+    geometries_fw = coordinates_from_list(geometries_fw, natoms)
+    geometries_init = coordinates_from_list(geometries_init, natoms)
     geometries_fw.reverse()
 
     geometries = geometries_fw + geometries_init + geometries_bw
@@ -81,7 +83,7 @@ def IRCCoordinatesFromt21(input_file):
     return [[[s, mol[0], mol[1], mol[2]] for i, (s, mol) in enumerate(zip(satoms, molecule))] for molecule in geometries]
 
 
-def coordinatesFromList(coordinates_list, natoms):
+def coordinates_from_list(coordinates_list, natoms):
     """
         Rewrites a list into a list of lists of lists:
         [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2] becomes:
@@ -90,14 +92,14 @@ def coordinatesFromList(coordinates_list, natoms):
         list[moleculeNumber][atomNumber][coordinateNumber]
     """
     # list = [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2]
-    coordinates_list = list(listChunks(coordinates_list, 3))
+    coordinates_list = list(list_chunks(coordinates_list, 3))
     # [[x1,y1,z1],[x2,y2,z2],[x'1,y'1,z'1],[x'2,y'2,z'2]]
-    coordinates_list = list(listChunks(coordinates_list, natoms))
+    coordinates_list = list(list_chunks(coordinates_list, natoms))
     # [ [[x1,y1,z1],[x2,y2,z2]], [[x'1,y'1,z'1],[x'2,y'2,z'2]]]
     return coordinates_list
 
 
-def listChunks(list, n):
+def list_chunks(list, n):
     """
         Generator that splits a list in chunks of size n
         /!\ Does not care about the end of the list if len(list) is not a multiple of n
@@ -106,7 +108,7 @@ def listChunks(list, n):
         yield list[i:i + n]
 
 
-def prepareNBOComputation(geometry, runparameters):
+def prepare_NBO_computation(geometry, runparameters):
     """
         Taking a geometry and a set of ADF parameters (Basis set, Functional, ZORA, etc)
         Add the NBO Necessary keywords and put everything in a file called filename
@@ -115,7 +117,7 @@ def prepareNBOComputation(geometry, runparameters):
     print(job.get_runscript())
 
 
-def extractNBOCharges(output, natoms):
+def extract_NBO_charges(output, natoms):
     """
         <extract NBO Charges parsing thr outFile
     """
@@ -149,20 +151,12 @@ def extractNBOCharges(output, natoms):
         return charges
 
 
-def NumberOfAtoms(inputfile):
+def number_of_atoms(input_file):
     """
         Extracts natoms from TAPE21
     """
-    t21 = KFReader(inputfile)
+    t21 = KFReader(input_file)
     return t21.read('Geometry', 'nr of atoms')
-
-
-class NBOJob(SingleJob):
-    def get_input(self):
-        return 'Input File'
-
-    def get_runscript(self):
-        return 'Full run script'
 
 
 def get_input_arguments():
@@ -172,7 +166,7 @@ def get_input_arguments():
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('inputfile', type=str, nargs=1,
+    parser.add_argument('input_file', type=str, nargs=1,
                         help='TAPE21 Containg IRC path')
 
     try:
@@ -182,8 +176,8 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    values = dict.fromkeys(['inputfile'])
-    values['inputfile'] = os.path.basename(args.inputfile[0])
+    values = dict.fromkeys(['input_file'])
+    values['input_file'] = os.path.basename(args.input_file[0])
 
     print(values)
     return values
@@ -201,6 +195,14 @@ def help_epilog():
         Returns additionnal help message
     """
     return 'Help epilog // To Fill'
+
+
+class NBOJob(SingleJob):
+    def get_input(self):
+        return 'Input File'
+
+    def get_runscript(self):
+        return 'Full run script'
 
 
 if __name__ == '__main__':
