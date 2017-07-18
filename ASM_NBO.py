@@ -184,10 +184,18 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    values = dict.fromkeys(['input_file'])
+    values = dict.fromkeys(['input_file', 'functional', 'dispersion', 'relativistic',
+                            'basisset', 'frozencore', 'integrationquality'])
     values['input_file'] = os.path.basename(args.input_file[0])
-
-    print(values)
+    functional = args.functional.split('-')
+    values['functional'] = functional[0]
+    if len(functional) > 1:
+        values['dispersion'] = functional[1]
+    else:
+        values['dispersion'] = None
+    values['basisset'] = args.basisset
+    values['frozencore'] = args.frozencore
+    values['integrationquality'] = args.integrationquality
     return values
 
 
