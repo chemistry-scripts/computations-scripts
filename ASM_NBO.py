@@ -1,3 +1,6 @@
+import argparse
+import os
+import sys
 from scm.plams import KFReader, Settings, SingleJob, init
 
 
@@ -8,13 +11,15 @@ def main():
         Prep all NBO computations
         Run ADF on each computation
     """
+    # Retrieve command line values
+    args = get_input_arguments()
+    inputFile = args['inputfile']
+
     # Init PLAMS, Setting up a plams.$PID directory in the working dir
     init()
 
     # Setup blank Settings, to be updated upon reading the IRC
     settings = Settings()
-
-    inputFile = "CO2-HBH2/CO2-HBH2-IRC.t21"
 
     geometries = IRCCoordinatesFromt21(inputFile)
     print("Writing File")
@@ -148,6 +153,43 @@ class NBOJob(SingleJob):
 
     def get_runscript(self):
         return "Full run script"
+
+
+def get_input_arguments():
+    """
+        Check command line options and accordingly set computation parameters
+    """
+    parser = argparse.ArgumentParser(description=help_description(),
+                                     epilog=help_epilog())
+    parser.formatter_class = argparse.RawDescriptionHelpFormatter
+    parser.add_argument('inputfile', type=str, nargs=1,
+                        help='TAPE21 Containg IRC path')
+
+    try:
+        args = parser.parse_args()
+    except argparse.ArgumentError as error:
+        print(str(error))  # Print something like "option -a not recognized"
+        sys.exit(2)
+
+    # Get values from parser
+    args = dict.fromkeys(['inputfile'])
+    args['inputfile'] = os.path.basename(args.inputfile)
+
+    return args
+
+
+def help_description():
+    """
+        Returns description of program for help message
+    """
+    return "Help Description // To fill"
+
+
+def help_epilog():
+    """
+        Returns additionnal help message
+    """
+    return "Help epilog // To Fill"
 
 
 if __name__ == '__main__':
