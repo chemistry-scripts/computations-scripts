@@ -36,15 +36,15 @@ def main():
     #             XYZ.write('\n')
     #         XYZ.write('\n\n')
 
-    # # Prep a bunch of NBO computations
-    # NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
-    # # Run each job in parallel as managed by plams
-    # NBO_results = [job.run() for job in NBO_jobs]
-    # # NBO_values is a list of list of charges
-    # NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
-    # with open('NBOCharges.data', mode='w+') as output_file:
-    #     for i in range(0, len(NBO_values)):
-    #         output_file.write('     '.join(NBO_values[i])) + '\n'
+    # Prep a bunch of NBO computations
+    NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
+    # Run each job in parallel as managed by plams
+    NBO_results = [job.run() for job in NBO_jobs]
+    # NBO_values is a list of list of charges
+    NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
+    with open('NBOCharges.data', mode='w+') as output_file:
+        for i in range(0, len(NBO_values)):
+            output_file.write('     '.join(NBO_values[i])) + '\n'
 
 
 def IRC_coordinates_from_t21(input_file):
