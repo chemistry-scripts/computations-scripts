@@ -56,7 +56,7 @@ def IRC_coordinates_from_t21(input_file):
 
     # Number of atoms: 7
     natoms = t21.read('Geometry', 'nr of atoms')
-    # atom types as indexes: [1, 2, 2, 3, 3, 3, 4]
+    # atom types as indexes: [1, 2, 2, 3, 3, 4, 3]
     aatoms = t21.read('Geometry', 'fragment and atomtype index')[natoms:]
     # Atom symbols as list: ['C', 'O', 'H', 'B']
     xatoms = str(t21.read('Geometry', 'atomtype')).split()
