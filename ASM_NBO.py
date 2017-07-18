@@ -14,27 +14,9 @@ def main():
     # Setup blank Settings, to be updated upon reading the IRC
     settings = Settings()
 
-    # Read TAPE21 and get all useful data
-    irc_tape21 = KFReader("CO2-HBH2/CO2-HBH2-IRC.t21")
+    inputFile = "CO2-HBH2/CO2-HBH2-IRC.t21"
 
-    # Retrieve Number of atoms
-    natoms = irc_tape21.read("Geometry", "nr of atoms")
-
-    nstep_fw = irc_tape21.read("IRC_Forward", "nset")
-    nstep_bw = irc_tape21.read("IRC_Backward", "nset")
-
-    geometries_fw = irc_tape21.read("IRC_Forward", "xyz")
-    geometries_bw = irc_tape21.read("IRC_Backward", "xyz")
-    geometries_init = irc_tape21.read("Geometry", "xyz")
-
-    # Reformat geometries into a long list of geometries for each step
-    geometries_bw = coordinatesFromList(geometries_bw, natoms, nstep_bw)
-    geometries_fw = coordinatesFromList(geometries_fw, natoms, nstep_fw)
-    geometries_init = coordinatesFromList(geometries_init, natoms, 1)
-    geometries_fw.reverse()
-
-    geometries = geometries_fw + geometries_init + geometries_bw
-
+    geometries = IRCCoordinatesFromt21(inputFile)
     print("Writing File")
     with open("file.xyz", mode='w+') as XYZ:
         print(XYZ.name)
@@ -54,6 +36,42 @@ def main():
     with open("NBOCharges.data", mode='w+') as output_file:
         for i in range(0, len(NBO_values)):
             output_file.write("     ".join(NBO_values[i])) + "\n"
+
+
+def IRCCoordinatesFromt21(input_file):
+    """
+        Extract all data from a TAPE21 file.
+    """
+    # Read TAPE21 and get all useful data
+    t21 = KFReader(input_file)
+
+    # Number of atoms: 7
+    natoms = t21.read("Geometry", "nr of atoms")
+    # atom types as indexes: [1, 2, 2, 3, 3, 3, 4]
+    aatoms = t21.read('Geometry', 'fragment and atomtype index')[natoms:]
+    # Atom symbols as list: ['C', 'O', 'H', 'B']
+    xatoms = str(t21.read('Geometry', 'atomtype')).split()
+    # Actual list of atoms as used in geometry: ['C', 'O', 'O', 'H', 'H', 'B', 'H']
+    satoms = [xatoms[aatoms[order - 1] - 1] for order in t21.read('Geometry', 'atom order index')[natoms:]]
+
+    # return [[[s, x, y, z] for s, x, y, z in zip(sAtoms, xyzBlock[0::3], xyzBlock[1::3], xyzBlock[2::3])] for xyzBlock in fwdIRC + cenIRC + bwdIRC]
+
+    nstep_fw = t21.read("IRC_Forward", "nset")
+    nstep_bw = t21.read("IRC_Backward", "nset")
+
+    geometries_fw = t21.read("IRC_Forward", "xyz")
+    geometries_bw = t21.read("IRC_Backward", "xyz")
+    geometries_init = t21.read("Geometry", "xyz")
+
+    # Reformat geometries into a long list of geometries for each step
+    geometries_bw = coordinatesFromList(geometries_bw, natoms, nstep_bw)
+    geometries_fw = coordinatesFromList(geometries_fw, natoms, nstep_fw)
+    geometries_init = coordinatesFromList(geometries_init, natoms, 1)
+    geometries_fw.reverse()
+
+    geometries = geometries_fw + geometries_init + geometries_bw
+
+    return [[[s, x, y, z] for s, x, y, z in zip(satoms, xyzBlock[0::3], xyzBlock[1::3], xyzBlock[2::3])] for xyzBlock in geometries]
 
 
 def coordinatesFromList(coordinates_list, NAtoms, NMolecules):
