@@ -22,18 +22,19 @@ def main():
     settings = Settings()
 
     geometries = IRCCoordinatesFromt21(inputFile)
+    natoms = NumberOfAtoms(inputFile)
 
     # # Code to write cleanly geometris to a file.xyz in the working directory.
-    print("Writing File")
-    with open("file.xyz", mode='w+') as XYZ:
-        print(XYZ.name)
-        for i in range(0, len(geometries)):
-            XYZ.write('New molecule\n')
-            for j in range(0, len(geometries[i])):
-                for k in range(0, len(geometries[i][j])):
-                    XYZ.write(str(geometries[i][j][k]) + '       ')
-                XYZ.write('\n')
-            XYZ.write('\n\n')
+    # print("Writing File")
+    # with open("file.xyz", mode='w+') as XYZ:
+    #     print(XYZ.name)
+    #     for i in range(0, len(geometries)):
+    #         XYZ.write('New molecule\n')
+    #         for j in range(0, len(geometries[i])):
+    #             for k in range(0, len(geometries[i][j])):
+    #                 XYZ.write(str(geometries[i][j][k]) + '       ')
+    #             XYZ.write('\n')
+    #         XYZ.write('\n\n')
 
     # Prep a bunch of NBO computations
     NBO_jobs = [prepareNBOComputation(geom, settings) for geom in geometries]
@@ -146,6 +147,14 @@ def extractNBOCharges(output, natoms):
                 # We have reached the end of the table, we can break the while loop
                 break
         return charges
+
+
+def NumberOfAtoms(inputfile):
+    """
+        Extracts natoms from TAPE21
+    """
+    t21 = KFReader(inputfile)
+    return t21.read('Geometry', 'nr of atoms')
 
 
 class NBOJob(SingleJob):
