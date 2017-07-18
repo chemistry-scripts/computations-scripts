@@ -18,10 +18,8 @@ def main():
     # Init PLAMS, Setting up a plams.$PID directory in the working dir
     init()
 
-    # Setup blank Settings, to be updated upon reading the IRC
-    settings = Settings()
-
-    settings = GetSettingsFromt21(input_file)
+    # Retrieve settings from input file
+    settings = get_settings_from_t21(input_file)
 
     geometries = IRC_coordinates_from_t21(input_file)
     natoms = number_of_atoms(input_file)
@@ -168,7 +166,17 @@ def get_input_arguments():
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument('input_file', type=str, nargs=1,
                         help='TAPE21 Containg IRC path')
-
+    parser.add_argument('-f', '--functional', type=str, nargs='?', default='BLYP-D3',
+                        help='Functional used for the computation, as BLYP-D3 or BP86\n'
+                             'Hyphen will split into functional/dispersion parts when applicable')
+    parser.add_argument('-r', '--relativistic', type=str, nargs='?',
+                        help='Relativistic effects: Scalar, Spin-Orbit or None (default)')
+    parser.add_argument('-b', '--basisset', type=str, nargs='?', default='DZP',
+                        help='The basis set to use for all atoms')
+    parser.add_argument('-c', '--frozencore', type=str, nargs='?', default='None',
+                        help='Frozen core to use: None (Default), Small, Large')
+    parser.add_argument('-i', '--integrationquality', type=str, nargs='?', default='Good',
+                        help='Numerical Integration Quality. Default: Good')
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -181,6 +189,16 @@ def get_input_arguments():
 
     print(values)
     return values
+
+
+def get_settings_from_t21(input_file):
+    """
+        Retrieve as much settings as possible from the input file
+        Functionals, Basis Sets, etc.
+    """
+    settings = Settings()
+
+    return settings
 
 
 def help_description():
