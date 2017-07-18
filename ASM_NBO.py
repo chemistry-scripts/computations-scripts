@@ -22,15 +22,18 @@ def main():
     settings = Settings()
 
     geometries = IRCCoordinatesFromt21(inputFile)
+
+    # # Code to write cleanly geometris to a file.xyz in the working directory.
     print("Writing File")
     with open("file.xyz", mode='w+') as XYZ:
         print(XYZ.name)
         for i in range(0, len(geometries)):
+            XYZ.write('New molecule\n')
             for j in range(0, len(geometries[i])):
                 for k in range(0, len(geometries[i][j])):
-                    XYZ.write(str(geometries[i][j][k]) + "       ")
-                XYZ.write("\n")
-            XYZ.write("\n\n")
+                    XYZ.write(str(geometries[i][j][k]) + '       ')
+                XYZ.write('\n')
+            XYZ.write('\n\n')
 
     # Prep a bunch of NBO computations
     NBO_jobs = [prepareNBOComputation(geom, settings) for geom in geometries]
@@ -38,9 +41,9 @@ def main():
     NBO_results = [job.run() for job in NBO_jobs]
     # NBO_values is a list of list of charges
     NBO_values = [extractNBOCharges(output, natoms) for output in NBO_results]
-    with open("NBOCharges.data", mode='w+') as output_file:
+    with open('NBOCharges.data', mode='w+') as output_file:
         for i in range(0, len(NBO_values)):
-            output_file.write("     ".join(NBO_values[i])) + "\n"
+            output_file.write('     '.join(NBO_values[i])) + '\n'
 
 
 def IRCCoordinatesFromt21(input_file):
@@ -51,35 +54,33 @@ def IRCCoordinatesFromt21(input_file):
     t21 = KFReader(input_file)
 
     # Number of atoms: 7
-    natoms = t21.read("Geometry", "nr of atoms")
+    natoms = t21.read('Geometry', 'nr of atoms')
     # atom types as indexes: [1, 2, 2, 3, 3, 3, 4]
     aatoms = t21.read('Geometry', 'fragment and atomtype index')[natoms:]
     # Atom symbols as list: ['C', 'O', 'H', 'B']
     xatoms = str(t21.read('Geometry', 'atomtype')).split()
     # Actual list of atoms as used in geometry: ['C', 'O', 'O', 'H', 'H', 'B', 'H']
-    satoms = [xatoms[aatoms[order - 1] - 1] for order in t21.read('Geometry', 'atom order index')[natoms:]]
+    satoms = [xatoms[aatoms[order - 1] - 1] for order in t21.read('Geometry', 'atom order index')[:natoms]]
 
-    # return [[[s, x, y, z] for s, x, y, z in zip(sAtoms, xyzBlock[0::3], xyzBlock[1::3], xyzBlock[2::3])] for xyzBlock in fwdIRC + cenIRC + bwdIRC]
+    nstep_fw = t21.read('IRC_Forward', 'CurrentPoint')
+    nstep_bw = t21.read('IRC_Backward', 'CurrentPoint')
+    geometries_fw = t21.read('IRC_Forward', 'xyz')[0:nstep_fw * natoms * 3]
+    geometries_bw = t21.read('IRC_Backward', 'xyz')[0:nstep_bw * natoms * 3]
+    geometries_init = t21.read('IRC', 'xyz')
 
-    nstep_fw = t21.read("IRC_Forward", "nset")
-    nstep_bw = t21.read("IRC_Backward", "nset")
-
-    geometries_fw = t21.read("IRC_Forward", "xyz")
-    geometries_bw = t21.read("IRC_Backward", "xyz")
-    geometries_init = t21.read("Geometry", "xyz")
-
+    print(geometries_init, sep=' ', end='\n', file=sys.stdout, flush=False)
     # Reformat geometries into a long list of geometries for each step
-    geometries_bw = coordinatesFromList(geometries_bw, natoms, nstep_bw)
-    geometries_fw = coordinatesFromList(geometries_fw, natoms, nstep_fw)
-    geometries_init = coordinatesFromList(geometries_init, natoms, 1)
+    geometries_bw = coordinatesFromList(geometries_bw, natoms)
+    geometries_fw = coordinatesFromList(geometries_fw, natoms)
+    geometries_init = coordinatesFromList(geometries_init, natoms)
     geometries_fw.reverse()
 
     geometries = geometries_fw + geometries_init + geometries_bw
 
-    return [[[s, x, y, z] for s, x, y, z in zip(satoms, xyzBlock[0::3], xyzBlock[1::3], xyzBlock[2::3])] for xyzBlock in geometries]
+    return [[[s, mol[0], mol[1], mol[2]] for i, (s, mol) in enumerate(zip(satoms, molecule))] for molecule in geometries]
 
 
-def coordinatesFromList(coordinates_list, NAtoms, NMolecules):
+def coordinatesFromList(coordinates_list, natoms):
     """
         Rewrites a list into a list of lists of lists:
         [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2] becomes:
@@ -88,9 +89,9 @@ def coordinatesFromList(coordinates_list, NAtoms, NMolecules):
         list[moleculeNumber][atomNumber][coordinateNumber]
     """
     # list = [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2]
-    coordinates_list = list(listChunks(coordinates_list, NAtoms))
+    coordinates_list = list(listChunks(coordinates_list, 3))
     # [[x1,y1,z1],[x2,y2,z2],[x'1,y'1,z'1],[x'2,y'2,z'2]]
-    coordinates_list = list(listChunks(coordinates_list, NMolecules))
+    coordinates_list = list(listChunks(coordinates_list, natoms))
     # [ [[x1,y1,z1],[x2,y2,z2]], [[x'1,y'1,z'1],[x'2,y'2,z'2]]]
     return coordinates_list
 
@@ -109,7 +110,7 @@ def prepareNBOComputation(geometry, runparameters):
         Taking a geometry and a set of ADF parameters (Basis set, Functional, ZORA, etc)
         Add the NBO Necessary keywords and put everything in a file called filename
     """
-    job = NBOJob(name="NBO Computation", settings=runparameters)
+    job = NBOJob(name='NBO Computation', settings=runparameters)
     print(job.get_runscript())
 
 
@@ -121,10 +122,10 @@ def extractNBOCharges(output, natoms):
     charges = []
 
     with open(output, mode='r') as outFile:
-        line = "Foobar line"
+        line = 'Foobar line'
         while line:
             line = outFile.readline()
-            if line.contains("Summary of Natural Population Analysis:"):
+            if line.contains('Summary of Natural Population Analysis:'):
                 # We have the table we want for the charges
                 # Read five lines to remove the header:
                 # Summary of Natural Population Analysis:
@@ -140,7 +141,7 @@ def extractNBOCharges(output, natoms):
                     # Each line follow the header with the form:
                     # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
                     line = outFile.readline()
-                    line = line.split(" ")
+                    line = line.split(' ')
                     charges.append(line[2])
                 # We have reached the end of the table, we can break the while loop
                 break
@@ -149,10 +150,10 @@ def extractNBOCharges(output, natoms):
 
 class NBOJob(SingleJob):
     def get_input(self):
-        return "Input File"
+        return 'Input File'
 
     def get_runscript(self):
-        return "Full run script"
+        return 'Full run script'
 
 
 def get_input_arguments():
@@ -172,24 +173,25 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    args = dict.fromkeys(['inputfile'])
-    args['inputfile'] = os.path.basename(args.inputfile)
+    values = dict.fromkeys(['inputfile'])
+    values['inputfile'] = os.path.basename(args.inputfile[0])
 
-    return args
+    print(values)
+    return values
 
 
 def help_description():
     """
         Returns description of program for help message
     """
-    return "Help Description // To fill"
+    return 'Help Description // To fill'
 
 
 def help_epilog():
     """
         Returns additionnal help message
     """
-    return "Help epilog // To Fill"
+    return 'Help epilog // To Fill'
 
 
 if __name__ == '__main__':
