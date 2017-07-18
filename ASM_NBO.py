@@ -92,7 +92,7 @@ def coordinatesFromList(coordinates_list, NAtoms, NMolecules):
 
 def listChunks(list, n):
     """
-        Split a list in chunks of size n
+        Generator that splits a list in chunks of size n
         /!\ Does not care about the end of the list if len(list) is not a multiple of n
     """
     for i in range(0, len(list), n):
