@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from scm.plams import KFReader, Settings, SingleJob, init
+from scm.plams import KFReader, Settings, ADFJob, init, finish
 
 
 def main():
@@ -45,6 +45,9 @@ def main():
     with open('NBOCharges.data', mode='w+') as output_file:
         for i in range(0, len(NBO_values)):
             output_file.write('     '.join(NBO_values[i])) + '\n'
+
+    # Close plams session
+    finish()
 
 
 def IRC_coordinates_from_t21(input_file):
@@ -218,9 +221,9 @@ def get_settings(values):
     settings.input.BASIS.createoutput = 'None'
     settings.input.NumericalQuality = values['integrationquality']
     settings.input.RELATIVISTIC = values['relativistic'] + " ZORA"
-    settings.input.AOMAT2FILE
+    settings.input.AOMAT2FILE = ''
     settings.input.SAVE = 'TAPE15'
-    settings.input.FULLFOCK
+    settings.input.FULLFOCK = ''
     settings.input.NOPRINT = "LOGFILE"
 
     print(settings)
@@ -241,12 +244,15 @@ def help_epilog():
     return 'Help epilog // To Fill'
 
 
-class NBOJob(SingleJob):
+class NBOJob(ADFJob):
     def get_input(self):
         return 'Input File'
 
     def get_runscript(self):
         return 'Full run script'
+
+    def postrun():
+        return 'Postrun script'
 
 
 if __name__ == '__main__':
