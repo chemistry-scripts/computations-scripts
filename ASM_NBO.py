@@ -24,18 +24,6 @@ def main():
     geometries = IRC_coordinates_from_t21(input_file)
     natoms = number_of_atoms(input_file)
 
-    # # Code to write cleanly geometris to a file.xyz in the working directory.
-    # print("Writing File")
-    # with open("file.xyz", mode='w+') as XYZ:
-    #     print(XYZ.name)
-    #     for i in range(0, len(geometries)):
-    #         XYZ.write('New molecule\n')
-    #         for j in range(0, len(geometries[i])):
-    #             for k in range(0, len(geometries[i][j])):
-    #                 XYZ.write(str(geometries[i][j][k]) + '       ')
-    #             XYZ.write('\n')
-    #         XYZ.write('\n\n')
-
     # Prep a bunch of NBO computations
     NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
     # Run each job in parallel as managed by plams
@@ -48,6 +36,23 @@ def main():
 
     # Close plams session
     finish()
+
+
+def IRC_coordinates_to_xyz_file(filename, geometries):
+    """
+        Export coordinates in geometries table to a file 'filename'
+        straight in the working directory
+    """
+    with open(filename, mode='w+') as XYZ:
+        print(XYZ.name)
+        for i in range(0, len(geometries)):
+            XYZ.write('New molecule\n')
+            for j in range(0, len(geometries[i])):
+                for k in range(0, len(geometries[i][j])):
+                    XYZ.write(str(geometries[i][j][k]) + '       ')
+                XYZ.write('\n')
+            XYZ.write('\n\n')
+    return
 
 
 def IRC_coordinates_from_t21(input_file):
@@ -135,7 +140,7 @@ def prepare_NBO_computation(geometry, runparameters):
 
 def extract_NBO_charges(output, natoms):
     """
-        <extract NBO Charges parsing thr outFile
+        extract NBO Charges parsing the outFile
     """
     # Initialize charges list
     charges = []
