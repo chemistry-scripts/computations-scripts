@@ -113,8 +113,24 @@ def prepare_NBO_computation(geometry, runparameters):
         Taking a geometry and a set of ADF parameters (Basis set, Functional, ZORA, etc)
         Add the NBO Necessary keywords and put everything in a file called filename
     """
-    job = NBOJob(name='NBO Computation', settings=runparameters)
+    nbo_script = '\n'.join(['"$ADFBIN/adfnbo" << eor',
+                            'write',
+                            'spherical',
+                            'nbo-analysis',
+                            'eor',
+                            '',
+                            '"$ADFBIN/gennbo6" FILE47',
+                            '',
+                            '"$ADFBIN/adfnbo" <<eor',
+                            'spherical',
+                            'fock',
+                            'read',
+                            'end input',
+                            'eor'])
+    runparameters.runscript.post = nbo_script
+    job = ADFJob(name='NBO Computation', settings=runparameters)
     print(job.get_runscript())
+    return job
 
 
 def extract_NBO_charges(output, natoms):
@@ -242,17 +258,6 @@ def help_epilog():
         Returns additionnal help message
     """
     return 'Help epilog // To Fill'
-
-
-class NBOJob(ADFJob):
-    def get_input(self):
-        return 'Input File'
-
-    def get_runscript(self):
-        return 'Full run script'
-
-    def postrun():
-        return 'Postrun script'
 
 
 if __name__ == '__main__':
