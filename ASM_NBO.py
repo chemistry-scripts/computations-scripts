@@ -30,6 +30,7 @@ def main():
     NBO_results = [job.run() for job in NBO_jobs]
     # NBO_values is a list of list of charges
     NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
+    # Write NBO data
     with open('NBOCharges.data', mode='w+') as output_file:
         for i in range(0, len(NBO_values)):
             output_file.write('     '.join(NBO_values[i])) + '\n'
