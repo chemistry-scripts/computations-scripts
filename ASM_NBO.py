@@ -111,7 +111,7 @@ def list_chunks(list, n):
 def prepare_NBO_computation(geometry, runparameters):
     """
         Taking a geometry and a set of ADF parameters (Basis set, Functional, ZORA, etc)
-        Add the NBO Necessary keywords and put everything in a file called filename
+        Add the NBO Necessary keywords and returns the plams job
     """
     nbo_script = '\n'.join(['"$ADFBIN/adfnbo" << eor',
                             'write',
