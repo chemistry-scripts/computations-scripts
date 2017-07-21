@@ -14,6 +14,7 @@ def main():
     # Retrieve command line values
     args = get_input_arguments()
     input_file = args['input_file']
+    output_file = args['output_file']
 
     # Init PLAMS, Setting up a plams.$PID directory in the working dir
     init()
@@ -31,9 +32,7 @@ def main():
     # NBO_values is a list of list of charges
     NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
     # Write NBO data
-    with open('NBOCharges.data', mode='w+') as output_file:
-        for i in range(0, len(NBO_values)):
-            output_file.write('     '.join(NBO_values[i])) + '\n'
+    print_NBO_charges_to_file(NBO_values, output_file)
 
     # Close plams session
     finish()
@@ -150,7 +149,7 @@ def extract_NBO_charges(output, natoms):
         line = 'Foobar line'
         while line:
             line = outFile.readline()
-            if line.contains('Summary of Natural Population Analysis:'):
+            if 'Summary of Natural Population Analysis:' in line:
                 # We have the table we want for the charges
                 # Read five lines to remove the header:
                 # Summary of Natural Population Analysis:
@@ -166,11 +165,20 @@ def extract_NBO_charges(output, natoms):
                     # Each line follow the header with the form:
                     # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
                     line = outFile.readline()
-                    line = line.split(' ')
+                    line = line.split()
                     charges.append(line[2])
                 # We have reached the end of the table, we can break the while loop
                 break
         return charges
+
+
+def print_NBO_charges_to_file(charges_list, file):
+    """
+        Export NBO charges to a file that one can import in a spreadsheet or gnuplot
+    """
+    with open(file, mode='w+') as output_file:
+        for i in range(0, len(charges_list)):
+            output_file.write('     '.join(charges_list[i]) + '\n')
 
 
 def number_of_atoms(input_file):
@@ -190,6 +198,8 @@ def get_input_arguments():
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument('input_file', type=str, nargs=1,
                         help='TAPE21 Containg IRC path')
+    parser.add_argument('output_file', type=str, nargs=1,
+                        help='Output file in which to print the NBO charges')
     parser.add_argument('-f', '--functional', type=str, nargs='?', default='BLYP-D3',
                         help='Functional used for the computation, as BLYP-D3 or BP86\n'
                              'Hyphen will split into functional/dispersion parts when applicable')
