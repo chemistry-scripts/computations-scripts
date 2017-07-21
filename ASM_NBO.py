@@ -28,9 +28,10 @@ def main():
     # Prep a bunch of NBO computations
     NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
     # Run each job in parallel as managed by plams
-    NBO_results = [job.run() for job in NBO_jobs]
+    for job in NBO_jobs:
+        job.run()
     # NBO_values is a list of list of charges
-    NBO_values = [extract_NBO_charges(output, natoms) for output in NBO_results]
+    NBO_values = [extract_NBO_charges(job._filenames('out'), natoms) for job in NBO_jobs]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
 
