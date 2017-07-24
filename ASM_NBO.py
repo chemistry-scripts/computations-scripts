@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from scm.plams import KFReader, Settings, ADFJob, init, finish
+from scm.plams import init, finish, KFReader, Settings, ADFJob, Atom, Molecule
 
 
 def main():
@@ -53,6 +53,18 @@ def IRC_coordinates_to_xyz_file(filename, geometries):
                 XYZ.write('\n')
             XYZ.write('\n\n')
     return
+
+
+def geometry_to_molecule(geometry):
+    """
+    Convert a list of XYZ coordinates to a Molecule object
+    """
+    mol = Molecule()
+
+    for i in range(0, len(geometry)):
+        mol.add_atom(Atom(symbol=geometry[i][0], coords=(geometry[i][1], geometry[i][2], geometry[i][3])))
+
+    return mol
 
 
 def IRC_coordinates_from_t21(input_file):
@@ -133,7 +145,9 @@ def prepare_NBO_computation(geometry, runparameters):
                             'end input',
                             'eor'])
     runparameters.runscript.post = nbo_script
-    job = ADFJob(name='NBO_Computation', settings=runparameters)
+
+    job = ADFJob(name='NBO_Computation', settings=runparameters, molecule=geometry_to_molecule(geometry))
+
     return job
 
 
