@@ -219,12 +219,11 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    values = dict.fromkeys(['input_file', 'functional', 'dispersion', 'relativistic',
+    values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion', 'relativistic',
                             'basisset', 'frozencore', 'integrationquality'])
     values['input_file'] = os.path.basename(args.input_file[0])
-    print(args)
+    values['output_file'] = os.path.basename(args.output_file[0])
     functional = args.functional.split('-')
-    print(functional)
     values['functional'] = functional[0]
     if len(functional) > 1:
         if functional[1] == 'GD3' or functional[1] == 'D3':
@@ -237,7 +236,6 @@ def get_input_arguments():
     values['basisset'] = args.basisset
     values['frozencore'] = args.frozencore
     values['integrationquality'] = args.integrationquality
-    print(values)
     return values
 
 
