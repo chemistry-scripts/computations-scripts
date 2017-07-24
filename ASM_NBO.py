@@ -45,7 +45,6 @@ def IRC_coordinates_to_xyz_file(filename, geometries):
         straight in the working directory
     """
     with open(filename, mode='w+') as XYZ:
-        print(XYZ.name)
         for i in range(0, len(geometries)):
             XYZ.write('New molecule\n')
             for j in range(0, len(geometries[i])):
@@ -134,8 +133,7 @@ def prepare_NBO_computation(geometry, runparameters):
                             'end input',
                             'eor'])
     runparameters.runscript.post = nbo_script
-    job = ADFJob(name='NBO Computation', settings=runparameters)
-    print(job.get_runscript())
+    job = ADFJob(name='NBO_Computation', settings=runparameters)
     return job
 
 
@@ -257,7 +255,6 @@ def get_settings(values):
     settings.input.FULLFOCK = ''
     settings.input.NOPRINT = "LOGFILE"
 
-    print(settings)
     return settings
 
 
