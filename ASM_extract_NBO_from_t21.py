@@ -18,8 +18,9 @@ def main():
     natoms = args['natoms']
 
     # Get list of output file names
-    NBO_files = [get_output_filename(input_file, i) for i in range(0, nsteps)]
+    NBO_files = [get_output_filename(input_file, i) for i in range(1, nsteps + 1)]
     # NBO_values is a list of list of charges
+    print(NBO_files)
     NBO_values = [extract_NBO_charges(out_file, natoms) for out_file in NBO_files]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
@@ -29,8 +30,10 @@ def get_output_filename(input_file, i):
     """
         Return output file name associated with input_file and step i
     """
-    out_file = os.path.basename(input_file + '.' + str(i).zfill(3))
-    return out_file
+    out_dir = os.path.basename(input_file + '.' + str(i).zfill(3))
+    for file in os.listdir(out_dir):
+        if file.endswith(".out"):
+            return out_dir + "/" + file
 
 
 def extract_NBO_charges(output, natoms):
@@ -99,11 +102,12 @@ def get_input_arguments():
 
     # Get values from parser
     values = dict.fromkeys(['input_file', 'output_file', 'nsteps', 'natoms'])
-    values['input_file'] = os.path.basename(args.inputfile)
-    values['output_file'] = os.path.basename(args.outputfile)
-    values['nsteps'] = args.numberofsteps
-    values['natoms'] = args.numberofatoms
+    values['input_file'] = os.path.basename(args.inputfile[0])
+    values['output_file'] = os.path.basename(args.outputfile[0])
+    values['nsteps'] = args.numberofsteps[0]
+    values['natoms'] = args.numberofatoms[0]
 
+    print(values)
     return values
 
 
