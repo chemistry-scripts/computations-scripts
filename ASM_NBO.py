@@ -31,7 +31,7 @@ def main():
     for job in NBO_jobs:
         job.run()
     # NBO_values is a list of list of charges
-    NBO_values = [extract_NBO_charges(job._filenames('out'), natoms) for job in NBO_jobs]
+    NBO_values = [extract_NBO_charges(job._filenames.get('out'), natoms) for job in NBO_jobs]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
 
