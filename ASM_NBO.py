@@ -268,6 +268,7 @@ def get_settings(values):
     settings.input.SAVE = 'TAPE15'
     settings.input.FULLFOCK = ''
     settings.input.NOPRINT = "LOGFILE"
+    settings.input.SYMMETRY = "NOSYM"
 
     return settings
 
