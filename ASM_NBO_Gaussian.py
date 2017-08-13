@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from scm.plams import init, finish, KFReader, Settings, ADFJob, Atom, Molecule
+from scm.plams import KFReader, Atom, Molecule
 
 
 def main():
@@ -16,27 +16,23 @@ def main():
     input_file = args['input_file']
     output_file = args['output_file']
 
-    # Init PLAMS, Setting up a plams.$PID directory in the working dir
-    init()
-
-    # Retrieve settings from input file
-    settings = get_settings(args)
-
     geometries = IRC_coordinates_from_t21(input_file)
     natoms = number_of_atoms(input_file)
 
+    # Get settings as a
+    settings_head, settings_tail = gaussian_input_parameters(args)
+
     # Prep a bunch of NBO computations
-    NBO_jobs = [prepare_NBO_computation(geom, settings) for geom in geometries]
+    NBO_jobs = [prepare_NBO_computation(geom, settings_head, settings_tail) for geom in geometries]
     # Run each job in parallel as managed by plams
+    # http://sametmax.com/en-python-les-threads-et-lasyncio-sutilisent-ensemble/
+    # https://stackoverflow.com/users/2745756/emmanuel?tab=favorites
     for job in NBO_jobs:
         job.run()
     # NBO_values is a list of list of charges
     NBO_values = [extract_NBO_charges(job._filenames.get('out'), natoms) for job in NBO_jobs]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
-
-    # Close plams session
-    finish()
 
 
 def IRC_coordinates_to_xyz_file(filename, geometries):
@@ -146,8 +142,6 @@ def prepare_NBO_computation(geometry, runparameters):
                             'eor'])
     runparameters.runscript.post = nbo_script
 
-    job = ADFJob(name='NBO_Computation', settings=runparameters, molecule=geometry_to_molecule(geometry))
-
     return job
 
 
@@ -213,8 +207,8 @@ def get_input_arguments():
                         help='TAPE21 Containg IRC path')
     parser.add_argument('output_file', type=str, nargs=1,
                         help='Output file in which to print the NBO charges')
-    parser.add_argument('-f', '--functional', type=str, nargs='?', default='BLYP-D3',
-                        help='Functional used for the computation, as BLYP-D3 or BP86\n'
+    parser.add_argument('-f', '--functional', type=str, nargs='?', default='B3LYP-D3',
+                        help='Functional used for the computation, as B3LYP-D3 or M062X\n'
                              'Hyphen will split into functional/dispersion parts when applicable')
     parser.add_argument('-r', '--relativistic', type=str, nargs='?', default='None',
                         help='Relativistic effects: Scalar, Spin-Orbit or None (default)')
@@ -239,9 +233,7 @@ def get_input_arguments():
     values['functional'] = functional[0]
     if len(functional) > 1:
         if functional[1] == 'GD3' or functional[1] == 'D3':
-            values['dispersion'] = 'Grimme3'
-        elif functional[1] == 'GD3BJ':
-            values['dispersion'] = 'Grimme3 BJDAMP'
+            values['dispersion'] = 'GD3'
     else:
         values['dispersion'] = None
     values['relativistic'] = args.relativistic
@@ -249,28 +241,6 @@ def get_input_arguments():
     values['frozencore'] = args.frozencore
     values['integrationquality'] = args.integrationquality
     return values
-
-
-def get_settings(values):
-    """
-        Retrieve settings from command line, and set them up
-    """
-    settings = Settings()
-    settings.input.XC.GGA = values['functional']
-    if values['dispersion'] is not None:
-        settings.input.XC.DISPERSION = values['dispersion']
-    settings.input.BASIS.type = values['basisset']
-    settings.input.BASIS.core = values['frozencore']
-    settings.input.BASIS.createoutput = 'None'
-    settings.input.NumericalQuality = values['integrationquality']
-    settings.input.RELATIVISTIC = values['relativistic'] + " ZORA"
-    settings.input.AOMAT2FILE = ''
-    settings.input.SAVE = 'TAPE15'
-    settings.input.FULLFOCK = ''
-    settings.input.NOPRINT = "LOGFILE"
-    settings.input.SYMMETRY = "NOSYM"
-
-    return settings
 
 
 def help_description():
