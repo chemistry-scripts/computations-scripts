@@ -121,28 +121,26 @@ def list_chunks(list, n):
         yield list[i:i + n]
 
 
-def prepare_NBO_computation(geometry, runparameters):
+def prepare_NBO_computation(geometry, header, footer):
     """
-        Taking a geometry and a set of ADF parameters (Basis set, Functional, ZORA, etc)
-        Add the NBO Necessary keywords and returns the plams job
+        From geometry, header, footer, create the input file.
+        Return the input file as a list of lines
     """
-    nbo_script = '\n'.join(['"$ADFBIN/adfnbo" << eor',
-                            'write',
-                            'spherical',
-                            'nbo-analysis',
-                            'eor',
-                            '',
-                            '"$ADFBIN/gennbo6" FILE47',
-                            '',
-                            '"$ADFBIN/adfnbo" <<eor',
-                            'spherical',
-                            'fock',
-                            'read',
-                            'end input',
-                            'eor'])
-    runparameters.runscript.post = nbo_script
+    input = []
 
-    return job
+    # Put header
+    input.extend(header)
+
+    # Add geometry
+    input.extend([])
+
+    # Add footer
+    input.extend(footer)
+
+    # Add two blank lines for the sake of Gaussian's weird behavior
+    input.append("")
+    input.append("")
+    return input
 
 
 def extract_NBO_charges(output, natoms):
