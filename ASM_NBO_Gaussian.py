@@ -260,6 +260,9 @@ def gaussian_input_parameters(args):
         route += "EmpiricalDispersion=" + args['dispersion'] + " "
     route += "gen pop=(nbo6read)"
     header.append(route)
+    header.append('')
+    # This is a singlet. Careful!
+    header.append('0 1')
 
     elements = list_elements(args['input_file'])
     elements = ' '.join(elements)
@@ -270,6 +273,7 @@ def gaussian_input_parameters(args):
     footer.append('')
 
     footer.append("$NBO")
+    # NBO_FILES should be updated t something more useful
     footer.append("FILE=NBO_FILES")
     footer.append("PLOT")
     footer.append("$END")
