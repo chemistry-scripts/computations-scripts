@@ -75,7 +75,7 @@ def IRC_coordinates_from_t21(input_file):
     # atom types as indexes: [1, 2, 2, 3, 3, 4, 3]
     aatoms = t21.read('Geometry', 'fragment and atomtype index')[natoms:]
     # Atom symbols as list: ['C', 'O', 'H', 'B']
-    xatoms = str(t21.read('Geometry', 'atomtype')).split()
+    xatoms = list_elements(input_file)
     # Actual list of atoms as used in geometry: ['C', 'O', 'O', 'H', 'H', 'B', 'H']
     satoms = [xatoms[aatoms[order - 1] - 1] for order in t21.read('Geometry', 'atom order index')[:natoms]]
 
@@ -196,6 +196,15 @@ def number_of_atoms(input_file):
     return t21.read('Geometry', 'nr of atoms')
 
 
+def list_elements(input_file):
+    """
+        Return a list of all elements used as:
+        ['C', 'H', 'N', 'P']
+    """
+    t21 = KFReader(input_file)
+    return str(t21.read('Geometry', 'atomtype')).split()
+
+
 def get_input_arguments():
     """
         Check command line options and accordingly set computation parameters
@@ -210,14 +219,10 @@ def get_input_arguments():
     parser.add_argument('-f', '--functional', type=str, nargs='?', default='B3LYP-D3',
                         help='Functional used for the computation, as B3LYP-D3 or M062X\n'
                              'Hyphen will split into functional/dispersion parts when applicable')
-    parser.add_argument('-r', '--relativistic', type=str, nargs='?', default='None',
-                        help='Relativistic effects: Scalar, Spin-Orbit or None (default)')
-    parser.add_argument('-b', '--basisset', type=str, nargs='?', default='DZP',
+    parser.add_argument('-b', '--basisset', type=str, nargs='?', default='6-31G*',
                         help='The basis set to use for all atoms')
-    parser.add_argument('-c', '--frozencore', type=str, nargs='?', default='None',
-                        help='Frozen core to use: None (Default), Small, Large')
-    parser.add_argument('-i', '--integrationquality', type=str, nargs='?', default='Good',
-                        help='Numerical Integration Quality. Default: Good')
+    parser.add_argument('-m', '--memory', type=str, nargs='?', default='3GB',
+                        help='Memory required per Gaussian calculation, i.e. per core')
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -225,8 +230,8 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion', 'relativistic',
-                            'basisset', 'frozencore', 'integrationquality'])
+    values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
+                            'basisset', 'memory'])
     values['input_file'] = os.path.basename(args.input_file[0])
     values['output_file'] = os.path.basename(args.output_file[0])
     functional = args.functional.split('-')
@@ -236,11 +241,40 @@ def get_input_arguments():
             values['dispersion'] = 'GD3'
     else:
         values['dispersion'] = None
-    values['relativistic'] = args.relativistic
     values['basisset'] = args.basisset
-    values['frozencore'] = args.frozencore
-    values['integrationquality'] = args.integrationquality
+    values['memory'] = args.memory
     return values
+
+
+def gaussian_input_parameters(args):
+    """
+        Returns a tuple containing the top and bottom part used for the Gaussian
+        calculation as lists of strings
+        args is the dictionary coming from parsing the command line
+    """
+    header = []
+    footer = []
+    header.append('%mem=' + args['memory'])
+    route = '# ' + args['functional'] + " "
+    if args['dispersion'] is not None:
+        route += "EmpiricalDispersion=" + args['dispersion'] + " "
+    route += "gen pop=(nbo6read)"
+    header.append(route)
+
+    elements = list_elements(args['input_file'])
+    elements = ' '.join(elements)
+    basisset = args['basisset']
+    footer.append(elements + ' 0')
+    footer.append(basisset)
+    footer.append("****")
+    footer.append('')
+
+    footer.append("$NBO")
+    footer.append("FILE=NBO_FILES")
+    footer.append("PLOT")
+    footer.append("$END")
+
+    return header, footer
 
 
 def help_description():
