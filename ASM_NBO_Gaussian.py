@@ -132,7 +132,7 @@ def prepare_NBO_computation(geometry, header, footer):
     input.extend(header)
 
     # Add geometry
-    input.extend([])
+    input.extend([' '.join([atom[0].ljust(5)] + [str(s).rjust(25) for s in atom[1:4]]) for atom in geometry])
 
     # Add footer
     input.extend(footer)
