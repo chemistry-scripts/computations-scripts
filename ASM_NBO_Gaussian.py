@@ -24,11 +24,12 @@ def main():
 
     # Prep a bunch of NBO computations
     NBO_jobs = [prepare_NBO_computation(geom, settings_head, settings_tail) for geom in geometries]
-    # Run each job in parallel as managed by plams
+    # Run each job in parallel using threads
     # http://sametmax.com/en-python-les-threads-et-lasyncio-sutilisent-ensemble/
     # https://stackoverflow.com/users/2745756/emmanuel?tab=favorites
     for job in NBO_jobs:
-        job.run()
+        print("====== New Job ======")
+        print('\n'.join(job))
     # NBO_values is a list of list of charges
     NBO_values = [extract_NBO_charges(job._filenames.get('out'), natoms) for job in NBO_jobs]
     # Write NBO data
@@ -131,8 +132,9 @@ def prepare_NBO_computation(geometry, header, footer):
     # Put header
     input.extend(header)
 
-    # Add geometry
+    # Add geometry + blank line
     input.extend([' '.join([atom[0].ljust(5)] + [str(s).rjust(25) for s in atom[1:4]]) for atom in geometry])
+    input.append('')
 
     # Add footer
     input.extend(footer)
@@ -252,16 +254,21 @@ def gaussian_input_parameters(args):
     """
     header = []
     footer = []
-    header.append('%mem=' + args['memory'])
+    header.append('%NProcShared=1')
+    header.append('%Mem=' + args['memory'])
     route = '# ' + args['functional'] + " "
     if args['dispersion'] is not None:
         route += "EmpiricalDispersion=" + args['dispersion'] + " "
     route += "gen pop=(nbo6read)"
     header.append(route)
     header.append('')
-    # This is a singlet. Careful!
+    # To update probably
+    header.append('Title of computation')
+    header.append('')
+    # This is a singlet. Careful for other systems!
     header.append('0 1')
 
+    # Basis set is the same for all elements. No ECP either.
     elements = list_elements(args['input_file'])
     elements = ' '.join(elements)
     basisset = args['basisset']
@@ -271,7 +278,7 @@ def gaussian_input_parameters(args):
     footer.append('')
 
     footer.append("$NBO")
-    # NBO_FILES should be updated t something more useful
+    # NBO_FILES should be updated to something more useful
     footer.append("FILE=NBO_FILES")
     footer.append("PLOT")
     footer.append("$END")
