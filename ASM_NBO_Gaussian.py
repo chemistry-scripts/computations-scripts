@@ -292,18 +292,28 @@ def gaussian_input_parameters(args):
 
 
 def help_description():
-    """
-        Returns description of program for help message
-    """
+    """Return description of program for help message."""
     return 'Help Description // To fill'
 
 
 def help_epilog():
-    """
-        Returns additionnal help message
-    """
+    """Return additionnal help message."""
     return 'Help epilog // To Fill'
 
 
 if __name__ == '__main__':
     main()
+
+
+class NBO_job():
+    """
+    Class that can be used as a container for Gaussian jobs.
+
+    Contains input file, id, name of computation, etc.
+    """
+
+    def __init__(self, name, input, id):
+        """Build  the NBO_job class."""
+        self.name = name
+        self.input = input
+        self.id = id
