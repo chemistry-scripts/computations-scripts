@@ -8,6 +8,7 @@ then create input files, run them, and analyse the output.
 import argparse
 import os
 import sys
+import logging
 from scm.plams import KFReader, Atom, Molecule
 
 
@@ -20,6 +21,16 @@ def main():
     Prep all NBO computations
     Run Gaussian on each computation
     """
+    # Setup logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
     # Retrieve command line values
     args = get_input_arguments()
     input_file = args['input_file']
