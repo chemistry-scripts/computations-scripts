@@ -35,6 +35,7 @@ def main():
     args = get_input_arguments()
     input_file = args['input_file']
     output_file = args['output_file']
+    basedir = os.path.abspath(os.curdir)
 
     geometries = IRC_coordinates_from_t21(input_file)
     natoms = number_of_atoms(input_file)
@@ -42,16 +43,23 @@ def main():
     # Get settings as a
     settings_head, settings_tail = gaussian_input_parameters(args)
 
+    Gaussian_jobs = []
     # Prep a bunch of NBO computations
-    NBO_jobs = [prepare_NBO_computation(geom, settings_head, settings_tail) for geom in geometries]
+    for i, geom in enumerate(geometries):
+        Gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
+                                                     name="ASM_NBO",
+                                                     geometry=geom,
+                                                     id=i,
+                                                     header=settings_head,
+                                                     footer=settings_tail,
+                                                     number_of_atoms=natoms))
     # Run each job in parallel using threads
     # http://sametmax.com/en-python-les-threads-et-lasyncio-sutilisent-ensemble/
     # https://stackoverflow.com/users/2745756/emmanuel?tab=favorites
-    for job in NBO_jobs:
-        print("====== New Job ======")
-        print('\n'.join(job))
+    for job in Gaussian_jobs:
+        job.run()
     # NBO_values is a list of list of charges
-    NBO_values = [extract_NBO_charges(job._filenames.get('out'), natoms) for job in NBO_jobs]
+    NBO_values = [job.extract_NBO_charges() for job in Gaussian_jobs]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
 
@@ -142,7 +150,7 @@ def list_chunks(list, n):
         yield list[i:i + n]
 
 
-def prepare_NBO_computation(geometry, header, footer):
+def prepare_NBO_computation(basedir, name, geometry, id, header, footer, number_of_atoms):
     """
     From geometry, header, footer, create the input file.
 
@@ -163,39 +171,8 @@ def prepare_NBO_computation(geometry, header, footer):
     # Add two blank lines for the sake of Gaussian's weird behavior
     input.append("")
     input.append("")
-    return input
 
-
-def extract_NBO_charges(output, natoms):
-    """Extract NBO Charges parsing the outFile."""
-    # Initialize charges list
-    charges = []
-
-    with open(output, mode='r') as outFile:
-        line = 'Foobar line'
-        while line:
-            line = outFile.readline()
-            if 'Summary of Natural Population Analysis:' in line:
-                # We have the table we want for the charges
-                # Read five lines to remove the header:
-                # Summary of Natural Population Analysis:
-                #
-                # Natural Population
-                # Natural    ---------------------------------------------
-                # Atom No    Charge        Core      Valence    Rydberg      Total
-                # ----------------------------------------------------------------
-                for i in range(0, 5):
-                    outFile.readline()
-                # Then we read the actual table:
-                for i in range(0, natoms):
-                    # Each line follow the header with the form:
-                    # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
-                    line = outFile.readline()
-                    line = line.split()
-                    charges.append(line[2])
-                # We have reached the end of the table, we can break the while loop
-                break
-        return charges
+    return Gaussian_Job(basedir, name, input, id, number_of_atoms)
 
 
 def print_NBO_charges_to_file(charges_list, file):
@@ -312,11 +289,7 @@ def help_epilog():
     return 'Help epilog // To Fill'
 
 
-if __name__ == '__main__':
-    main()
-
-
-class NBO_job():
+class Gaussian_Job():
     """
     Class that can be used as a container for Gaussian jobs.
 
@@ -325,21 +298,27 @@ class NBO_job():
         - name (name of computation, string)
         - id (unique identifier, int)
         - natoms (number of atoms, int)
-        - path (path of files, os.path object)
-        - output (log file, os.path object)
+        - basedir (base directory, os.path object)
+        - path (path in which to run current computation, os.path object)
+        - input_filename (file_name.com, str)
+        - output_filename (file_name.log, str)
+
     """
 
-    def __init__(self, name, input, id, natoms):
-        """Build  the NBO_job class."""
+    def __init__(self, basedir, name, input, id, natoms):
+        """Build  the Gaussian_job class."""
         self.name = name
         self.input = input
         self.id = id
         self.natoms = natoms
-        # Set path as: /work/dir/my_name.000xx/
-        self.path = os.path.curdir() + self.name.replace(" ", "_") + "." + self.str(id).zfill(4)
-        os.makedirs(self.path, mode=0o777, exist_ok=False)
+        # base directory from which all computations are started
+        self.basedir = basedir
+        # Set path as: /base/directory/my_name.000xx/
+        self.path = self.basedir + self.name.replace(" ", "_") + "." + str(self.id).zfill(4)
+        self.input_filename = self.name.replace(" ", "_") + ".com"
+        self.output_filename = self.name.replace(" ", "_") + ".log"
 
-    def run():
+    def run(self):
         """Start the job."""
         # To fill
 
@@ -348,7 +327,7 @@ class NBO_job():
         # Initialize charges list
         charges = []
 
-        with open(self.output, mode='r') as outFile:
+        with open(self.output_filename, mode='r') as outFile:
             line = 'Foobar line'
             while line:
                 line = outFile.readline()
@@ -373,3 +352,24 @@ class NBO_job():
                             # We have reached the end of the table, we can break the while loop
                             break
                             return charges
+
+    def setup_computation(self):
+        """
+        Set computation up before running it.
+
+        Create working directory, write input file
+        """
+        # Create working directory
+        os.makedirs(self.path, mode=0o777, exist_ok=False)
+        logging.info("Created directory {dir}".format(dir=self.path))
+        # Go into working directory
+        os.chdir(self.path)
+        # Write input file
+        with open(self.input_filename, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True) as input:
+            input.write("\n".join(self.input))
+        # Get back to base directory
+        os.chdir(self.basedir)
+
+
+if __name__ == '__main__':
+    main()
