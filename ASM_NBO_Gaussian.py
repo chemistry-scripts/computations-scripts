@@ -1,3 +1,10 @@
+"""
+Perform an NBO analysis through Gaussian on every step of an IRC path.
+
+Takes an IRC computed from ADF (at the moment), extract all intermediate geometries,
+then create input files, run them, and analyse the output.
+"""
+
 import argparse
 import os
 import sys
@@ -6,10 +13,12 @@ from scm.plams import KFReader, Atom, Molecule
 
 def main():
     """
-        Main interface that reads the file and retrieve all useful geoms etc.
-        Then rewrite geometries in a usable formatter_class
-        Prep all NBO computations
-        Run Gaussian on each computation
+    Do all the job.
+
+    Interface that reads the file and retrieve all useful geoms etc.
+    Then rewrite geometries in a usable formatter_class
+    Prep all NBO computations
+    Run Gaussian on each computation
     """
     # Retrieve command line values
     args = get_input_arguments()
@@ -37,12 +46,12 @@ def main():
 
 
 def IRC_coordinates_to_xyz_file(filename, geometries):
-    """
-        Export coordinates in geometries table to a file 'filename'
-        straight in the working directory
-    """
+    """Export coordinates in geometries table to a file straight in the working directory."""
+    # Open file
     with open(filename, mode='w+') as XYZ:
+        # Iterate over molecules
         for i in range(0, len(geometries)):
+            # For each molecule, write "New molecule", the put the geometry as C 0.00 1.00 2.00
             XYZ.write('New molecule\n')
             for j in range(0, len(geometries[i])):
                 for k in range(0, len(geometries[i][j])):
@@ -53,9 +62,7 @@ def IRC_coordinates_to_xyz_file(filename, geometries):
 
 
 def geometry_to_molecule(geometry):
-    """
-    Convert a list of XYZ coordinates to a Molecule object
-    """
+    """Convert a list of XYZ coordinates to a Molecule object."""
     mol = Molecule()
 
     for i in range(0, len(geometry)):
@@ -65,9 +72,7 @@ def geometry_to_molecule(geometry):
 
 
 def IRC_coordinates_from_t21(input_file):
-    """
-        Extract all data from a TAPE21 file.
-    """
+    """Extract all data from a TAPE21 file."""
     # Read TAPE21 and get all useful data
     t21 = KFReader(input_file)
 
@@ -99,11 +104,13 @@ def IRC_coordinates_from_t21(input_file):
 
 def coordinates_from_list(coordinates_list, natoms):
     """
-        Rewrites a list into a list of lists of lists:
-        [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2] becomes:
-        [ [ [x1,y1,z1], [x2,y2,z2]], [ [x'1,y'1,z'1], [x'2,y'2,z'2] ] ]
-        which can be acessed as:
-        list[moleculeNumber][atomNumber][coordinateNumber]
+    Rewrites a list into a list of lists of lists.
+
+    Example:
+    [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2] becomes:
+    [ [ [x1,y1,z1], [x2,y2,z2]], [ [x'1,y'1,z'1], [x'2,y'2,z'2] ] ]
+    which can be acessed as:
+    list[moleculeNumber][atomNumber][coordinateNumber]
     """
     # list = [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2]
     coordinates_list = list(list_chunks(coordinates_list, 3))
@@ -115,8 +122,10 @@ def coordinates_from_list(coordinates_list, natoms):
 
 def list_chunks(list, n):
     """
-        Generator that splits a list in chunks of size n
-        /!\ Does not care about the end of the list if len(list) is not a multiple of n
+    Split a list in chunks of size n.
+
+    Careful: does not care about the end of the list if len(list) is not a multiple of n
+    It is actually a generator, so mind the usage.
     """
     for i in range(0, len(list), n):
         yield list[i:i + n]
@@ -124,8 +133,9 @@ def list_chunks(list, n):
 
 def prepare_NBO_computation(geometry, header, footer):
     """
-        From geometry, header, footer, create the input file.
-        Return the input file as a list of lines
+    From geometry, header, footer, create the input file.
+
+    Return the input file as a list of lines
     """
     input = []
 
@@ -146,9 +156,7 @@ def prepare_NBO_computation(geometry, header, footer):
 
 
 def extract_NBO_charges(output, natoms):
-    """
-        extract NBO Charges parsing the outFile
-    """
+    """Extract NBO Charges parsing the outFile."""
     # Initialize charges list
     charges = []
 
@@ -180,35 +188,31 @@ def extract_NBO_charges(output, natoms):
 
 
 def print_NBO_charges_to_file(charges_list, file):
-    """
-        Export NBO charges to a file that one can import in a spreadsheet or gnuplot
-    """
+    """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
     with open(file, mode='w+') as output_file:
         for i in range(0, len(charges_list)):
             output_file.write('     '.join(charges_list[i]) + '\n')
 
 
 def number_of_atoms(input_file):
-    """
-        Extracts natoms from TAPE21
-    """
+    """Extract natoms from TAPE21."""
     t21 = KFReader(input_file)
     return t21.read('Geometry', 'nr of atoms')
 
 
 def list_elements(input_file):
     """
-        Return a list of all elements used as:
-        ['C', 'H', 'N', 'P']
+    Return a list of all elements used in the computation.
+
+    The list will look like:
+    ['C', 'H', 'N', 'P']
     """
     t21 = KFReader(input_file)
     return str(t21.read('Geometry', 'atomtype')).split()
 
 
 def get_input_arguments():
-    """
-        Check command line options and accordingly set computation parameters
-    """
+    """Check command line options and accordingly set computation parameters."""
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
@@ -248,9 +252,10 @@ def get_input_arguments():
 
 def gaussian_input_parameters(args):
     """
-        Returns a tuple containing the top and bottom part used for the Gaussian
-        calculation as lists of strings
-        args is the dictionary coming from parsing the command line
+    Return a tuple containing the top and bottom part used for the Gaussian calculation.
+
+    Both parts are lists of strings.
+    args is the dictionary coming from parsing the command line
     """
     header = []
     footer = []
