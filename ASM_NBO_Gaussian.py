@@ -309,11 +309,56 @@ class NBO_job():
     """
     Class that can be used as a container for Gaussian jobs.
 
-    Contains input file, id, name of computation, etc.
+    Attributes:
+        - input (input file,  list of strings)
+        - name (name of computation, string)
+        - id (unique identifier, int)
+        - natoms (number of atoms, int)
+        - path (path of files, os.path object)
+        - output (log file, os.path object)
     """
 
-    def __init__(self, name, input, id):
+    def __init__(self, name, input, id, natoms):
         """Build  the NBO_job class."""
         self.name = name
         self.input = input
         self.id = id
+        self.natoms = natoms
+        # Set path as: /work/dir/my_name.000xx/
+        self.path = os.path.curdir() + self.name.replace(" ", "_") + "." + self.str(id).zfill(4)
+        os.makedirs(self.path, mode=0o777, exist_ok=False)
+
+    def run():
+        """Start the job."""
+        # To fill
+
+    def extract_NBO_charges(self):
+        """Extract NBO Charges parsing the outFile."""
+        # Initialize charges list
+        charges = []
+
+        with open(self.output, mode='r') as outFile:
+            line = 'Foobar line'
+            while line:
+                line = outFile.readline()
+                if 'Summary of Natural Population Analysis:' in line:
+                    # We have the table we want for the charges
+                    # Read five lines to remove the header:
+                    # Summary of Natural Population Analysis:
+                    #
+                    # Natural Population
+                    # Natural    ---------------------------------------------
+                    # Atom No    Charge        Core      Valence    Rydberg      Total
+                    # ----------------------------------------------------------------
+                    for i in range(0, 5):
+                        outFile.readline()
+                        # Then we read the actual table:
+                        for i in range(0, self.natoms):
+                            # Each line follow the header with the form:
+                            # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
+                            line = outFile.readline()
+                            line = line.split()
+                            charges.append(line[2])
+                            # We have reached the end of the table, we can break the while loop
+                            break
+                            return charges
