@@ -254,11 +254,12 @@ def gaussian_input_parameters(args):
     header = []
     footer = []
     header.append('%NProcShared=1')
-    header.append('%Mem=' + args['memory'])
+    # header.append('%Mem=' + args['memory'])
     route = '# ' + args['functional'] + " "
     if args['dispersion'] is not None:
         route += "EmpiricalDispersion=" + args['dispersion'] + " "
-    route += "gen pop=(nbo6read)"
+    # route += "gen pop=(nbo6read)"
+    route += "gen pop=(npa)"
     header.append(route)
     header.append('')
     # To update probably
@@ -276,11 +277,11 @@ def gaussian_input_parameters(args):
     footer.append("****")
     footer.append('')
 
-    footer.append("$NBO")
-    # NBO_FILES should be updated to something more useful
-    footer.append("FILE=NBO_FILES")
-    footer.append("PLOT")
-    footer.append("$END")
+    # footer.append("$NBO")
+    # # NBO_FILES should be updated to something more useful
+    # footer.append("FILE=NBO_FILES")
+    # footer.append("PLOT")
+    # footer.append("$END")
 
     return header, footer
 
