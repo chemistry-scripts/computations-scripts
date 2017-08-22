@@ -53,6 +53,9 @@ def main():
                                                      header=settings_head,
                                                      footer=settings_tail,
                                                      number_of_atoms=natoms))
+    # Prepare all jobs (setup directories etc.)
+    for job in Gaussian_jobs:
+        job.setup_computation()
     # Run each job in parallel using threads
     # http://sametmax.com/en-python-les-threads-et-lasyncio-sutilisent-ensemble/
     # https://stackoverflow.com/users/2745756/emmanuel?tab=favorites
@@ -314,16 +317,27 @@ class Gaussian_Job():
         # base directory from which all computations are started
         self.basedir = basedir
         # Set path as: /base/directory/my_name.000xx/
-        self.path = self.basedir + self.name.replace(" ", "_") + "." + str(self.id).zfill(4)
+        self.path = os.path.join(self.basedir, self.name.replace(" ", "_") + "." + str(self.id).zfill(4))
         self.input_filename = self.name.replace(" ", "_") + ".com"
         self.output_filename = self.name.replace(" ", "_") + ".log"
 
     def run(self):
         """Start the job."""
-        # To fill
+        # Log computation start
+        logger = logging.getLogger()
+        logger.info("Starting computation " + str(self.id))
+        # Get into workdir, start gaussian, then back to basedir
+        os.chdir(self.path)
+        os.system('g09 < ' + self.input_filename + ' > ' + self.output_filename)
+        os.chdir(self.basedir)
+        # Log end of computation
+        logger.info("Finished computation " + str(self.id))
 
     def extract_NBO_charges(self):
         """Extract NBO Charges parsing the outFile."""
+        # Get into working directory
+        os.chdir(self.path)
+
         # Initialize charges list
         charges = []
 
@@ -351,7 +365,9 @@ class Gaussian_Job():
                             charges.append(line[2])
                             # We have reached the end of the table, we can break the while loop
                             break
-                            return charges
+        # Get back to the base directory
+        os.chdir(self.basedir)
+        return charges
 
     def setup_computation(self):
         """
@@ -365,7 +381,7 @@ class Gaussian_Job():
         # Go into working directory
         os.chdir(self.path)
         # Write input file
-        with open(self.input_filename, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True) as input:
+        with open(self.input_filename, mode='w', buffering=-1, encoding=None, errors=None, newline=None, closefd=True) as input:
             input.write("\n".join(self.input))
         # Get back to base directory
         os.chdir(self.basedir)
