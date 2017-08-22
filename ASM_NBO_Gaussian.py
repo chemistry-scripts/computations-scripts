@@ -9,6 +9,7 @@ import argparse
 import os
 import sys
 import logging
+from concurrent.futures import ProcessPoolExecutor
 from scm.plams import KFReader, Atom, Molecule
 
 
@@ -59,8 +60,10 @@ def main():
     # Run each job in parallel using threads
     # http://sametmax.com/en-python-les-threads-et-lasyncio-sutilisent-ensemble/
     # https://stackoverflow.com/users/2745756/emmanuel?tab=favorites
-    for job in Gaussian_jobs:
-        job.run()
+    with ProcessPoolExecutor() as executor:
+        for job in Gaussian_jobs:
+            executor.submit(job.run)
+
     # NBO_values is a list of list of charges
     NBO_values = [job.extract_NBO_charges() for job in Gaussian_jobs]
     # Write NBO data
