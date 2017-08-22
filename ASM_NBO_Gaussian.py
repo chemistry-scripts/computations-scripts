@@ -338,6 +338,10 @@ class Gaussian_Job():
 
     def extract_NBO_charges(self):
         """Extract NBO Charges parsing the outFile."""
+        # Log start
+        logger = logging.getLogger()
+        logger.info("Parsing results from computation " + str(self.id))
+
         # Get into working directory
         os.chdir(self.path)
 
@@ -349,6 +353,7 @@ class Gaussian_Job():
             while line:
                 line = outFile.readline()
                 if 'Summary of Natural Population Analysis:' in line:
+                    logger.debug("ID " + str(self.id) + ": Found NPA table.")
                     # We have the table we want for the charges
                     # Read five lines to remove the header:
                     # Summary of Natural Population Analysis:
@@ -359,7 +364,6 @@ class Gaussian_Job():
                     # ----------------------------------------------------------------
                     for i in range(0, 5):
                         outFile.readline()
-
                     # Then we read the actual table:
                     for i in range(0, self.natoms):
                         # Each line follow the header with the form:
@@ -367,8 +371,10 @@ class Gaussian_Job():
                         line = outFile.readline()
                         line = line.split()
                         charges.append(line[2])
-                        # We have reached the end of the table, we can break the while loop
-                break
+                    logger.debug("ID " + str(self.id) + ": Charges = " + " ".join([str(i) for i in charges]))
+                    # We have reached the end of the table, we can break the while loop
+                    break
+                # End of if 'Summary of Natural Population Analysis:'
         # Get back to the base directory
         os.chdir(self.basedir)
         return charges
