@@ -356,15 +356,16 @@ class Gaussian_Job():
                     # ----------------------------------------------------------------
                     for i in range(0, 5):
                         outFile.readline()
-                        # Then we read the actual table:
-                        for i in range(0, self.natoms):
-                            # Each line follow the header with the form:
-                            # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
-                            line = outFile.readline()
-                            line = line.split()
-                            charges.append(line[2])
-                            # We have reached the end of the table, we can break the while loop
-                            break
+
+                    # Then we read the actual table:
+                    for i in range(0, self.natoms):
+                        # Each line follow the header with the form:
+                        # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
+                        line = outFile.readline()
+                        line = line.split()
+                        charges.append(line[2])
+                        # We have reached the end of the table, we can break the while loop
+                break
         # Get back to the base directory
         os.chdir(self.basedir)
         return charges
