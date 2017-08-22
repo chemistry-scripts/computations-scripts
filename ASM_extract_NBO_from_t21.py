@@ -67,7 +67,7 @@ def extract_NBO_charges(output, natoms):
                     charges.append(line[2])
                 # We have reached the end of the table, we can break the while loop
                 break
-        return charges
+    return charges
 
 
 def print_NBO_charges_to_file(charges_list, file):
