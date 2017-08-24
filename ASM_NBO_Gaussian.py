@@ -210,9 +210,9 @@ def get_input_arguments():
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('input_file', type=str, nargs=1,
-                        help='TAPE21 Containg IRC path')
-    parser.add_argument('output_file', type=str, nargs=1,
+    parser.add_argument('-i', '--input_file', type=str, nargs='+',
+                        help='file(s) Containg IRC path')
+    parser.add_argument('-o', '--output_file', type=str, nargs=1,
                         help='Output file in which to print the NBO charges')
     parser.add_argument('-f', '--functional', type=str, nargs='?', default='B3LYP-D3',
                         help='Functional used for the computation, as B3LYP-D3 or M062X\n'
