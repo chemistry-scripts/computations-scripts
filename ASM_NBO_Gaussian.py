@@ -1,7 +1,7 @@
 """
 Perform an NBO analysis through Gaussian on every step of an IRC path.
 
-Takes an IRC computed from ADF (at the moment), extract all intermediate geometries,
+Takes an IRC computed from Gaussian, extract all intermediate geometries,
 then create input files, run them, and analyse the output.
 """
 
@@ -9,8 +9,9 @@ import argparse
 import os
 import sys
 import logging
+from cclib.io import ccread
+from cclib.parser.utils import PeriodicTable
 from concurrent.futures import ProcessPoolExecutor
-from scm.plams import KFReader, Atom, Molecule
 
 
 def main():
@@ -38,7 +39,7 @@ def main():
     output_file = args['output_file']
     basedir = os.path.abspath(os.curdir)
 
-    geometries = IRC_coordinates_from_t21(input_file)
+    geometries = IRC_coordinates_from_input(input_file)
     natoms = number_of_atoms(input_file)
 
     # Get settings as a
@@ -86,45 +87,15 @@ def IRC_coordinates_to_xyz_file(filename, geometries):
     return
 
 
-def geometry_to_molecule(geometry):
-    """Convert a list of XYZ coordinates to a Molecule object."""
-    mol = Molecule()
-
-    for i in range(0, len(geometry)):
-        mol.add_atom(Atom(symbol=geometry[i][0], coords=(geometry[i][1], geometry[i][2], geometry[i][3])))
-
-    return mol
-
-
-def IRC_coordinates_from_t21(input_file):
-    """Extract all data from a TAPE21 file."""
-    # Read TAPE21 and get all useful data
-    t21 = KFReader(input_file)
-
-    # Number of atoms: 7
-    natoms = t21.read('Geometry', 'nr of atoms')
-    # atom types as indexes: [1, 2, 2, 3, 3, 4, 3]
-    aatoms = t21.read('Geometry', 'fragment and atomtype index')[natoms:]
-    # Atom symbols as list: ['C', 'O', 'H', 'B']
-    xatoms = list_elements(input_file)
-    # Actual list of atoms as used in geometry: ['C', 'O', 'O', 'H', 'H', 'B', 'H']
-    satoms = [xatoms[aatoms[order - 1] - 1] for order in t21.read('Geometry', 'atom order index')[:natoms]]
-
-    nstep_fw = t21.read('IRC_Forward', 'CurrentPoint')
-    nstep_bw = t21.read('IRC_Backward', 'CurrentPoint')
-    geometries_fw = t21.read('IRC_Forward', 'xyz')[0:nstep_fw * natoms * 3]
-    geometries_bw = t21.read('IRC_Backward', 'xyz')[0:nstep_bw * natoms * 3]
-    geometries_init = t21.read('IRC', 'xyz')
-
-    # Reformat geometries into a long list of geometries for each step
-    geometries_bw = coordinates_from_list(geometries_bw, natoms)
-    geometries_fw = coordinates_from_list(geometries_fw, natoms)
-    geometries_init = coordinates_from_list(geometries_init, natoms)
-    geometries_fw.reverse()
-
-    geometries = geometries_fw + geometries_init + geometries_bw
-
-    return [[[s, mol[0], mol[1], mol[2]] for i, (s, mol) in enumerate(zip(satoms, molecule))] for molecule in geometries]
+def IRC_coordinates_from_input(input_file):
+    """Return a table of coordinates containing all last geometries (converged or not) from an IRC."""
+    file = ccread(input_file, optdone_as_list=True)
+    new_indexes = [x for x, y in enumerate(file.optstatus) if y & file.OPT_NEW > 0]
+    # new_indexes finishes with 0, so has to finish with -1 for the last index.
+    last_indexes = [x - 1 for x in new_indexes.append(new_indexes.pop())]
+    # file.atomcoords is an ndarray, so can be accessed with a list!
+    coordinates = file.atomcoords[last_indexes]
+    return coordinates.tolist()
 
 
 def coordinates_from_list(coordinates_list, natoms):
@@ -189,9 +160,9 @@ def print_NBO_charges_to_file(charges_list, file):
 
 
 def number_of_atoms(input_file):
-    """Extract natoms from TAPE21."""
-    t21 = KFReader(input_file)
-    return t21.read('Geometry', 'nr of atoms')
+    """Extract natoms from file."""
+    file = ccread(input_file)
+    return file.natom
 
 
 def list_elements(input_file):
@@ -201,8 +172,11 @@ def list_elements(input_file):
     The list will look like:
     ['C', 'H', 'N', 'P']
     """
-    t21 = KFReader(input_file)
-    return str(t21.read('Geometry', 'atomtype')).split()
+    file = ccread(input_file)
+    atoms = dict.fromkeys(file.atomnos.tolist())
+    pt = PeriodicTable()
+    atom_list = [pt.element[i] for i in atoms]
+    return atom_list
 
 
 def get_input_arguments():
