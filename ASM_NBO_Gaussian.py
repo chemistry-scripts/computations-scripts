@@ -34,17 +34,28 @@ def main():
     logger.addHandler(stream_handler)
 
     # Retrieve command line values
+    logger.debug("Retrieving input arguments")
     args = get_input_arguments()
     input_files = args['input_file']
     output_file = args['output_file']
     basedir = os.path.abspath(os.curdir)
+    logger.debug("Input files: " + " ".join([str(path) for path in input_files]))
+    logger.debug("Output file: " + str(output_file))
+    logger.debug("Current directory: " + str(basedir))
 
+    logger.debug("Geometry extraction")
     geometries = []
     for input_file in input_files:
-        geometries.append(IRC_coordinates_from_input(input_file))
-    natoms = number_of_atoms(input_file)
+        geometries.extend(IRC_coordinates_from_input(input_file))
+    logger.debug("Extracted geometries: " + str(len(geometries)))
 
-    # Get settings as a
+    logger.debug("Number of atoms extraction")
+    natoms = number_of_atoms(input_files[0])
+    logger.debug("Retrieved number of atoms")
+    logger.debug("natoms: " + str(natoms))
+
+    # Get settings as a tuple
+    logger.debug("Getting Gaussian input parameters")
     settings_head, settings_tail = gaussian_input_parameters(args)
 
     Gaussian_jobs = []
@@ -92,7 +103,7 @@ def IRC_coordinates_from_input(input_file):
     file = ccread(input_file, optdone_as_list=True)
     new_indexes = [x for x, y in enumerate(file.optstatus) if y & file.OPT_NEW > 0]
     # new_indexes finishes with 0, so has to finish with -1 for the last index.
-    last_indexes = [x - 1 for x in new_indexes.append(new_indexes.pop())]
+    last_indexes = [x - 1 for x in new_indexes[1:len(new_indexes)] + [new_indexes[0]]]
     # file.atomcoords is an ndarray, so can be accessed with a list!
     coordinates = file.atomcoords[last_indexes]
     return coordinates.tolist()
@@ -225,6 +236,7 @@ def gaussian_input_parameters(args):
     Both parts are lists of strings.
     args is the dictionary coming from parsing the command line
     """
+    logger = logging.getLogger()
     header = []
     footer = []
     header.append('%NProcShared=1')
@@ -243,7 +255,7 @@ def gaussian_input_parameters(args):
     header.append('0 1')
 
     # Basis set is the same for all elements. No ECP either.
-    elements = list_elements(args['input_file'])
+    elements = list_elements(args['input_file'][0])
     elements = ' '.join(elements)
     basisset = args['basisset']
     footer.append(elements + ' 0')
@@ -257,6 +269,8 @@ def gaussian_input_parameters(args):
     # footer.append("PLOT")
     # footer.append("$END")
 
+    logger.debug("Header: \n" + '\n'.join(header))
+    logger.debug("Footer: \n" + '\n'.join(footer))
     return header, footer
 
 
