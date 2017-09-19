@@ -35,11 +35,13 @@ def main():
 
     # Retrieve command line values
     args = get_input_arguments()
-    input_file = args['input_file']
+    input_files = args['input_file']
     output_file = args['output_file']
     basedir = os.path.abspath(os.curdir)
 
-    geometries = IRC_coordinates_from_input(input_file)
+    geometries = []
+    for input_file in input_files:
+        geometries.append(IRC_coordinates_from_input(input_file))
     natoms = number_of_atoms(input_file)
 
     # Get settings as a
@@ -58,9 +60,7 @@ def main():
     # Prepare all jobs (setup directories etc.)
     for job in Gaussian_jobs:
         job.setup_computation()
-    # Run each job in parallel using threads
-    # http://sametmax.com/en-python-les-threads-et-lasyncio-sutilisent-ensemble/
-    # https://stackoverflow.com/users/2745756/emmanuel?tab=favorites
+    # Run each job in parallel using multiple processes
     with ProcessPoolExecutor() as executor:
         for job in Gaussian_jobs:
             executor.submit(job.run)
@@ -204,8 +204,8 @@ def get_input_arguments():
     # Get values from parser
     values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
                             'basisset', 'memory'])
-    values['input_file'] = os.path.basename(args.input_file[0])
-    values['output_file'] = os.path.basename(args.output_file[0])
+    values['input_file'] = [os.path.abspath(i) for i in args.input_file]
+    values['output_file'] = os.path.abspath(args.output_file[0])
     functional = args.functional.split('-')
     values['functional'] = functional[0]
     if len(functional) > 1:
