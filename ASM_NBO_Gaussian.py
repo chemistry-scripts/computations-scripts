@@ -38,6 +38,7 @@ def main():
     args = get_input_arguments()
     input_files = args['input_file']
     output_file = args['output_file']
+    element_list = atom_types(args['input_file'][0])
     basedir = os.path.abspath(os.curdir)
     logger.debug("Input files: " + " ".join([str(path) for path in input_files]))
     logger.debug("Output file: " + str(output_file))
@@ -67,7 +68,8 @@ def main():
                                                      id=i,
                                                      header=settings_head,
                                                      footer=settings_tail,
-                                                     number_of_atoms=natoms))
+                                                     number_of_atoms=natoms,
+                                                     element_list=element_list))
     # Prepare all jobs (setup directories etc.)
     for job in Gaussian_jobs:
         job.setup_computation()
@@ -138,7 +140,7 @@ def list_chunks(list, n):
         yield list[i:i + n]
 
 
-def prepare_NBO_computation(basedir, name, geometry, id, header, footer, number_of_atoms):
+def prepare_NBO_computation(basedir, name, geometry, id, header, footer, number_of_atoms, element_list):
     """
     From geometry, header, footer, create the input file.
 
@@ -150,7 +152,7 @@ def prepare_NBO_computation(basedir, name, geometry, id, header, footer, number_
     input.extend(header)
 
     # Add geometry + blank line
-    input.extend([' '.join([atom[0].ljust(5)] + [str(s).rjust(25) for s in atom[1:4]]) for atom in geometry])
+    input.extend([' '.join([element_list[i].ljust(5)] + [str(s).rjust(25) for s in atom]) for i, atom in enumerate(geometry)])
     input.append('')
 
     # Add footer
@@ -176,9 +178,23 @@ def number_of_atoms(input_file):
     return file.natom
 
 
+def atom_types(input_file):
+    """
+    Return a list of all atom types in the right order.
+
+    The list will look like:
+    ['C', 'H', 'H', 'H', 'C', 'N', 'P']
+    """
+    file = ccread(input_file)
+    atoms = file.atomnos.tolist()
+    pt = PeriodicTable()
+    atom_list = [pt.element[i] for i in atoms]
+    return atom_list
+
+
 def list_elements(input_file):
     """
-    Return a list of all elements used in the computation.
+    Return a list of all unique elements used in the computation.
 
     The list will look like:
     ['C', 'H', 'N', 'P']
