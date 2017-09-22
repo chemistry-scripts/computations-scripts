@@ -152,7 +152,7 @@ def prepare_NBO_computation(basedir, name, geometry, id, header, footer, number_
     input.extend(header)
 
     # Add geometry + blank line
-    input.extend([' '.join([element_list[i].ljust(5)] + [str(s).rjust(25) for s in atom]) for i, atom in enumerate(geometry)])
+    input.extend([' '.join([element_list[i].ljust(5)] + ["{:.6f}".format(s).rjust(25) for s in atom]) for i, atom in enumerate(geometry)])
     input.append('')
 
     # Add footer
