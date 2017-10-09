@@ -59,10 +59,10 @@ def main():
     logger.debug("Getting Gaussian input parameters")
     settings_head, settings_tail = gaussian_input_parameters(args)
 
-    Gaussian_jobs = []
+    gaussian_jobs = []
     # Prep a bunch of NBO computations
     for i, geom in enumerate(geometries):
-        Gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
+        gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
                                                      name="ASM_NBO",
                                                      geometry=geom,
                                                      id=i,
@@ -71,15 +71,15 @@ def main():
                                                      number_of_atoms=natoms,
                                                      element_list=element_list))
     # Prepare all jobs (setup directories etc.)
-    for job in Gaussian_jobs:
+    for job in gaussian_jobs:
         job.setup_computation()
     # Run each job in parallel using multiple processes
     with ProcessPoolExecutor() as executor:
-        for job in Gaussian_jobs:
+        for job in gaussian_jobs:
             executor.submit(job.run)
 
     # NBO_values is a list of list of charges
-    NBO_values = [job.extract_NBO_charges() for job in Gaussian_jobs]
+    NBO_values = [job.extract_NBO_charges() for job in gaussian_jobs]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
 
