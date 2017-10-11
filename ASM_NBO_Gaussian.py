@@ -359,7 +359,7 @@ class Gaussian_Job():
         return charges
 
     def get_coordinates(self):
-        """Extract coordinates from output file"""
+        """Extract coordinates from output file."""
         # Log start
         logger = logging.getLogger()
         logger.info("Extracting coordinates " + str(self.id))
@@ -367,8 +367,11 @@ class Gaussian_Job():
         # Get into working directory
         os.chdir(self.path)
 
+        # Parse file with cclib
+        data = ccread(self.output_filename)
 
-
+        #  Return the coordinates
+        return data.atomcoords
 
     def setup_computation(self):
         """
