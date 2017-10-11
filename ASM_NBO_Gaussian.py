@@ -65,7 +65,7 @@ def main():
         gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
                                                      name="ASM_NBO",
                                                      geometry=geom,
-                                                     id=i,
+                                                     job_id=i,
                                                      header=settings_head,
                                                      footer=settings_tail,
                                                      number_of_atoms=natoms,
@@ -101,7 +101,7 @@ def IRC_coordinates_to_xyz_file(filename, geometries):
 
 
 def IRC_coordinates_from_input(input_file):
-    """Return a table of coordinates containing all last geometries (converged or not) from an IRC."""
+    """Return a table of coordinates with all last geometries (converged or not) from an IRC."""
     file = ccread(input_file, optdone_as_list=True)
     new_indexes = [x for x, y in enumerate(file.optstatus) if y & file.OPT_NEW > 0]
     # new_indexes finishes with 0, so has to finish with -1 for the last index.
@@ -111,58 +111,31 @@ def IRC_coordinates_from_input(input_file):
     return coordinates.tolist()
 
 
-def coordinates_from_list(coordinates_list, natoms):
-    """
-    Rewrites a list into a list of lists of lists.
-
-    Example:
-    [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2] becomes:
-    [ [ [x1,y1,z1], [x2,y2,z2]], [ [x'1,y'1,z'1], [x'2,y'2,z'2] ] ]
-    which can be acessed as:
-    list[moleculeNumber][atomNumber][coordinateNumber]
-    """
-    # list = [x1,y1,z1,x2,y2,z2,x'1,y'1,z'1,x'2,y'2,z'2]
-    coordinates_list = list(list_chunks(coordinates_list, 3))
-    # [[x1,y1,z1],[x2,y2,z2],[x'1,y'1,z'1],[x'2,y'2,z'2]]
-    coordinates_list = list(list_chunks(coordinates_list, natoms))
-    # [ [[x1,y1,z1],[x2,y2,z2]], [[x'1,y'1,z'1],[x'2,y'2,z'2]]]
-    return coordinates_list
-
-
-def list_chunks(list, n):
-    """
-    Split a list in chunks of size n.
-
-    Careful: does not care about the end of the list if len(list) is not a multiple of n
-    It is actually a generator, so mind the usage.
-    """
-    for i in range(0, len(list), n):
-        yield list[i:i + n]
-
-
-def prepare_NBO_computation(basedir, name, geometry, id, header, footer, number_of_atoms, element_list):
+def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, number_of_atoms, element_list):
     """
     From geometry, header, footer, create the input file.
 
     Return the input file as a list of lines
     """
-    input = []
+    input_file = []
 
     # Put header
-    input.extend(header)
+    input_file.extend(header)
 
     # Add geometry + blank line
-    input.extend([' '.join([element_list[i].ljust(5)] + ["{:.6f}".format(s).rjust(25) for s in atom]) for i, atom in enumerate(geometry)])
-    input.append('')
+    input_file.extend([' '.join([element_list[i].ljust(5)] +
+                                ["{:.6f}".format(s).rjust(25) for s in atom])
+                       for i, atom in enumerate(geometry)])
+    input_file.append('')
 
     # Add footer
-    input.extend(footer)
+    input_file.extend(footer)
 
     # Add two blank lines for the sake of Gaussian's weird behavior
-    input.append("")
-    input.append("")
+    input_file.append("")
+    input_file.append("")
 
-    return Gaussian_Job(basedir, name, input, id, number_of_atoms)
+    return Gaussian_Job(basedir, name, input_file, job_id, number_of_atoms)
 
 
 def print_NBO_charges_to_file(charges_list, file):
@@ -187,8 +160,8 @@ def atom_types(input_file):
     """
     file = ccread(input_file)
     atoms = file.atomnos.tolist()
-    pt = PeriodicTable()
-    atom_list = [pt.element[i] for i in atoms]
+    periodic_table = PeriodicTable()
+    atom_list = [periodic_table.element[i] for i in atoms]
     return atom_list
 
 
@@ -201,8 +174,8 @@ def list_elements(input_file):
     """
     file = ccread(input_file)
     atoms = dict.fromkeys(file.atomnos.tolist())
-    pt = PeriodicTable()
-    atom_list = [pt.element[i] for i in atoms]
+    periodic_table = PeriodicTable()
+    atom_list = [periodic_table.element[i] for i in atoms]
     return atom_list
 
 
@@ -376,7 +349,8 @@ class Gaussian_Job():
                         line = outFile.readline()
                         line = line.split()
                         charges.append(line[2])
-                    logger.debug("ID " + str(self.id) + ": Charges = " + " ".join([str(i) for i in charges]))
+                    logger.debug("ID " + str(self.id) + ": " +
+                                 "Charges = " + " ".join([str(i) for i in charges]))
                     # We have reached the end of the table, we can break the while loop
                     break
                 # End of if 'Summary of Natural Population Analysis:'
@@ -392,12 +366,12 @@ class Gaussian_Job():
         """
         # Create working directory
         os.makedirs(self.path, mode=0o777, exist_ok=False)
-        logging.info("Created directory {dir}".format(dir=self.path))
+        logging.info("Created directory %s", self.path)
         # Go into working directory
         os.chdir(self.path)
         # Write input file
-        with open(self.input_filename, mode='w', buffering=-1, encoding=None, errors=None, newline=None, closefd=True) as input:
-            input.write("\n".join(self.input))
+        with open(self.input_filename, mode='w') as input_file:
+            input_file.write("\n".join(self.input))
         # Get back to base directory
         os.chdir(self.basedir)
 
