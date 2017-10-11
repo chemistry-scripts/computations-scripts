@@ -197,6 +197,10 @@ def get_input_arguments():
                         help='The basis set to use for all atoms')
     parser.add_argument('-m', '--memory', type=str, nargs='?', default='3GB',
                         help='Memory required per Gaussian calculation, i.e. per core')
+    parser.add_argument('-d', '--data', type=str, nargs='?',
+                        help='Useful data to extract, such as bonds or angles\n'
+                             'Write it as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
+                             'or D 3 8 9 1 (Dihedral 3-8-9-1)')
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -205,7 +209,7 @@ def get_input_arguments():
 
     # Get values from parser
     values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
-                            'basisset', 'memory'])
+                            'basisset', 'memory', 'data'])
     values['input_file'] = [os.path.abspath(i) for i in args.input_file]
     values['output_file'] = os.path.abspath(args.output_file[0])
     functional = args.functional.split('-')
@@ -217,6 +221,32 @@ def get_input_arguments():
         values['dispersion'] = None
     values['basisset'] = args.basisset
     values['memory'] = args.memory
+    if len(args.data) > 1:
+        bonds = []
+        angles = []
+        dihedrals = []
+        iterator = iter(args.data)
+        for i in iterator:
+            if i == 'B':
+                x = next(iterator)
+                y = next(iterator)
+                bonds.append([x, y])
+            if i == 'A':
+                m = next(iterator)
+                n = next(iterator)
+                o = next(iterator)
+                angles.append([m, n, o])
+            if i == 'D':
+                a = next(iterator)
+                b = next(iterator)
+                c = next(iterator)
+                d = next(iterator)
+                dihedrals.append([a, b, c, d])
+        values['data'] = dict.fromkeys('bonds', 'angles', 'dihedrals')
+        values['data']['bonds'] = bonds
+        values['data']['angles'] = angles
+        values['data']['dihedrals'] = dihedrals
+
     return values
 
 
