@@ -80,6 +80,7 @@ def main():
 
     # NBO_values is a list of list of charges
     NBO_values = [job.extract_NBO_charges() for job in gaussian_jobs]
+    job_ids = [job.id for job in gaussian_jobs]
     coordinates = [job.get_coordinates() for job in gaussian_jobs]
 
     # Write NBO data
