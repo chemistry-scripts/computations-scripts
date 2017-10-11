@@ -358,6 +358,18 @@ class Gaussian_Job():
         os.chdir(self.basedir)
         return charges
 
+    def get_coordinates(self):
+        """Extract coordinates from output file"""
+        # Log start
+        logger = logging.getLogger()
+        logger.info("Extracting coordinates " + str(self.id))
+
+        # Get into working directory
+        os.chdir(self.path)
+
+
+
+
     def setup_computation(self):
         """
         Set computation up before running it.
