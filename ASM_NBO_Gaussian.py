@@ -83,6 +83,8 @@ def main():
     job_ids = [job.id for job in gaussian_jobs]
     coordinates = [job.get_coordinates() for job in gaussian_jobs]
 
+    # Compute distances, angles and dihedrals when necessary
+
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
 
@@ -112,6 +114,21 @@ def IRC_coordinates_from_input(input_file):
     # file.atomcoords is an ndarray, so can be accessed with a list!
     coordinates = file.atomcoords[last_indexes]
     return coordinates.tolist()
+
+
+def distance_from_coordinates(coord1, coord2):
+    """Compute distance between two points."""
+    return
+
+
+def angle_from_coordinates(coord1, coord2, coord3):
+    """Compute angle between three points."""
+    return
+
+
+def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
+    """Compute dihedral between four points."""
+    return
 
 
 def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, number_of_atoms, element_list):
