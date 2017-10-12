@@ -9,6 +9,7 @@ import argparse
 import os
 import sys
 import logging
+from numpy.linalg import norm as np_norm
 from cclib.io import ccread
 from cclib.parser.utils import PeriodicTable
 from concurrent.futures import ProcessPoolExecutor
@@ -118,7 +119,7 @@ def IRC_coordinates_from_input(input_file):
 
 def distance_from_coordinates(coord1, coord2):
     """Compute distance between two points."""
-    return
+    return np_norm(coord2 - coord1)
 
 
 def angle_from_coordinates(coord1, coord2, coord3):
@@ -420,8 +421,8 @@ class Gaussian_Job():
         # Parse file with cclib
         data = ccread(self.output_filename)
 
-        #  Return the coordinates
-        return data.atomcoords
+        #  Return the first coordinates, since it is a single point
+        return data.atomcoords[0]
 
     def setup_computation(self):
         """
