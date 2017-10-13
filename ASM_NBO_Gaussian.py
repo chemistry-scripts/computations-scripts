@@ -9,10 +9,11 @@ import argparse
 import os
 import sys
 import logging
+import numpy as np
+from concurrent.futures import ProcessPoolExecutor
 from numpy.linalg import norm as np_norm
 from cclib.io import ccread
 from cclib.parser.utils import PeriodicTable
-from concurrent.futures import ProcessPoolExecutor
 
 
 def main():
@@ -124,7 +125,13 @@ def distance_from_coordinates(coord1, coord2):
 
 def angle_from_coordinates(coord1, coord2, coord3):
     """Compute angle between three points."""
-    return
+    bond21 = coord1 - coord2
+    bond23 = coord3 - coord2
+
+    cosine_angle = np.dot(bond21, bond23) / (np.linalg.norm(bond21) * np.linalg.norm(bond23))
+    angle = np.arccos(cosine_angle)
+
+    return np.degrees(angle)
 
 
 def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
