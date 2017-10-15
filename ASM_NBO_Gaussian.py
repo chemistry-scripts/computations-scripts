@@ -136,7 +136,27 @@ def angle_from_coordinates(coord1, coord2, coord3):
 
 def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
     """Compute dihedral between four points."""
-    return
+    # Strategy:
+    # p1 <--vector1-- p2 --vector0--> p3 --vector2--> p4
+    # Dihedral corresponds to angle between planes (vector0,vector1) and (vector0,vector2)
+
+    vector0 = coord3 - coord2
+    vector1 = coord1 - coord2
+    vector2 = coord4 - coord3
+
+    # normalize vector 0 in order to project properly
+    vector0 /= np.linalg.norm(vector0)
+
+    # Decomposition of vectors 1 and 2 into projection on vector 0 and other component, that is kept as proj1 and proj2
+    proj1 = vector1 - np.dot(vector0, vector1) * vector0
+    proj2 = vector2 - np.dot(vector0, vector2) * vector0
+
+    # Angle between proj1 and proj2 is the dihedral
+    # We use here a trick with the cross product in dot2, since it allows to keep proper
+    # sign with sin and cos combination, and avoids any renormalization (that can be slow)
+    dot1 = np.dot(proj1, proj2)
+    dot2 = np.dot(np.cross(vector0, proj1), proj2)
+    return np.degrees(np.arctan2(dot2, dot1))
 
 
 def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, number_of_atoms, element_list):
