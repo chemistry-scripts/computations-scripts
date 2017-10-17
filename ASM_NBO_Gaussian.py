@@ -9,8 +9,8 @@ import argparse
 import os
 import sys
 import logging
-import numpy as np
 from concurrent.futures import ProcessPoolExecutor
+import numpy as np
 from numpy.linalg import norm as np_norm
 from cclib.io import ccread
 from cclib.parser.utils import PeriodicTable
@@ -94,16 +94,16 @@ def main():
 def IRC_coordinates_to_xyz_file(filename, geometries):
     """Export coordinates in geometries table to a file straight in the working directory."""
     # Open file
-    with open(filename, mode='w+') as XYZ:
+    with open(filename, mode='w+') as xyz_file:
         # Iterate over molecules
         for i in range(0, len(geometries)):
             # For each molecule, write "New molecule", the put the geometry as C 0.00 1.00 2.00
-            XYZ.write('New molecule\n')
+            xyz_file.write('New molecule\n')
             for j in range(0, len(geometries[i])):
                 for k in range(0, len(geometries[i][j])):
-                    XYZ.write(str(geometries[i][j][k]) + '       ')
-                XYZ.write('\n')
-            XYZ.write('\n\n')
+                    xyz_file.write(str(geometries[i][j][k]) + '       ')
+                xyz_file.write('\n')
+            xyz_file.write('\n\n')
     return
 
 
@@ -159,7 +159,7 @@ def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
     return np.degrees(np.arctan2(dot2, dot1))
 
 
-def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, number_of_atoms, element_list):
+def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, natoms, element_list):
     """
     From geometry, header, footer, create the input file.
 
@@ -183,7 +183,7 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, num
     input_file.append("")
     input_file.append("")
 
-    return Gaussian_Job(basedir, name, input_file, job_id, number_of_atoms)
+    return Gaussian_Job(basedir, name, input_file, job_id, natoms)
 
 
 def print_NBO_charges_to_file(charges_list, file):
@@ -245,7 +245,7 @@ def get_input_arguments():
                         help='Memory required per Gaussian calculation, i.e. per core')
     parser.add_argument('-d', '--data', type=str, nargs='?',
                         help='Useful data to extract, such as bonds or angles\n'
-                             'Write it as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
+                             'Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
                              'or D 3 8 9 1 (Dihedral 3-8-9-1)')
     try:
         args = parser.parse_args()
@@ -274,20 +274,11 @@ def get_input_arguments():
         iterator = iter(args.data)
         for i in iterator:
             if i == 'B':
-                x = next(iterator)
-                y = next(iterator)
-                bonds.append([x, y])
+                bonds.append([next(iterator), next(iterator)])
             if i == 'A':
-                m = next(iterator)
-                n = next(iterator)
-                o = next(iterator)
-                angles.append([m, n, o])
+                angles.append([next(iterator), next(iterator), next(iterator)])
             if i == 'D':
-                a = next(iterator)
-                b = next(iterator)
-                c = next(iterator)
-                d = next(iterator)
-                dihedrals.append([a, b, c, d])
+                dihedrals.append([next(iterator), next(iterator), next(iterator), next(iterator)])
         values['data'] = dict.fromkeys('bonds', 'angles', 'dihedrals')
         values['data']['bonds'] = bonds
         values['data']['angles'] = angles
