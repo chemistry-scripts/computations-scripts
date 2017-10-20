@@ -28,11 +28,13 @@ def main():
     # Setup logging
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
     stream_handler.setFormatter(formatter)
+
     logger.addHandler(stream_handler)
 
     # Retrieve command line values
@@ -70,7 +72,7 @@ def main():
                                                      job_id=i,
                                                      header=settings_head,
                                                      footer=settings_tail,
-                                                     number_of_atoms=natoms,
+                                                     natoms=natoms,
                                                      element_list=element_list))
     # Prepare all jobs (setup directories etc.)
     for job in gaussian_jobs:
@@ -83,12 +85,39 @@ def main():
     # NBO_values is a list of list of charges
     NBO_values = [job.extract_NBO_charges() for job in gaussian_jobs]
     job_ids = [job.id for job in gaussian_jobs]
-    coordinates = [job.get_coordinates() for job in gaussian_jobs]
 
     # Compute distances, angles and dihedrals when necessary
-
+    if len(args['data']) > 0:
+        coordinates = [job.get_coordinates() for job in gaussian_jobs]
+        measured_data = [compute_measurements(coord, args['data']) for coord in coordinates]
     # Write NBO data
-    print_NBO_charges_to_file(NBO_values, output_file)
+    print_NBO_charges_to_file(NBO_values, job_ids, measured_data, output_file)
+
+
+def compute_measurements(coordinates, required_data):
+    """Compute required measurements from coordinates"""
+    # Initialize list
+    extracted_data = []
+
+    # Extract all bonds
+    extracted_data.extend([distance_from_coordinates(coordinates[bond[0]],
+                                                     coordinates[bond[1]])
+                           for bond in required_data['bonds']])
+
+    # Extract all bonds
+    extracted_data.extend([angle_from_coordinates(coordinates[angle[0]],
+                                                  coordinates[angle[1]],
+                                                  coordinates[angle[2]])
+                           for angle in required_data['angles']])
+
+    # Extract all bonds
+    extracted_data.extend([dihedral_from_coordinates(coordinates[dihedral[0]],
+                                                     coordinates[dihedral[1]],
+                                                     coordinates[dihedral[2]],
+                                                     coordinates[dihedral[3]])
+                           for dihedral in required_data['dihedrals']])
+
+    return extracted_data
 
 
 def IRC_coordinates_to_xyz_file(filename, geometries):
@@ -186,11 +215,11 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
     return Gaussian_Job(basedir, name, input_file, job_id, natoms)
 
 
-def print_NBO_charges_to_file(charges_list, file):
+def print_NBO_charges_to_file(charges_list, file, measures, job_ids):
     """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
     with open(file, mode='w+') as output_file:
         for i in range(0, len(charges_list)):
-            output_file.write('     '.join(charges_list[i]) + '\n')
+            output_file.write(job_ids[i] + '     '.join(charges_list[i]) + '\n')
 
 
 def number_of_atoms(input_file):
