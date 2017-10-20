@@ -218,8 +218,8 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
 def print_NBO_charges_to_file(charges_list, file, measures, job_ids):
     """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
     with open(file, mode='w+') as output_file:
-        for i in range(0, len(charges_list)):
-            output_file.write(job_ids[i] + '     '.join(charges_list[i]) + '\n')
+        for job_id, measured_data, charges in zip(job_ids, measures, charges_list):
+            output_file.write(job_id.ljust(5) + '   '.join(measured_data) + '     '.join(charges) + '\n')
 
 
 def number_of_atoms(input_file):
