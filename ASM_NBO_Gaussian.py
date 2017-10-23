@@ -92,7 +92,7 @@ def main():
     # Compute distances, angles and dihedrals when necessary
     measured_data = []
     logger.debug("Data to extract: %s", args['data'])
-    if not args['data']:
+    if args['data']:
         coordinates = [job.get_coordinates() for job in gaussian_jobs]
         measured_data = [compute_measurements(coord, args['data']) for coord in coordinates]
     # Write NBO data
