@@ -12,7 +12,6 @@ import sys
 import logging
 from concurrent.futures import ProcessPoolExecutor
 import numpy as np
-from numpy.linalg import norm as np_norm
 from cclib.io import ccread
 from cclib.parser.utils import PeriodicTable
 
@@ -153,7 +152,7 @@ def IRC_coordinates_from_input(input_file):
 
 def distance_from_coordinates(coord1, coord2):
     """Compute distance between two points."""
-    return np_norm(coord2 - coord1)
+    return np.linalg.norm(coord2 - coord1)
 
 
 def angle_from_coordinates(coord1, coord2, coord3):
