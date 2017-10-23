@@ -87,7 +87,7 @@ def main():
 
     # NBO_values is a list of list of charges
     NBO_values = [job.extract_NBO_charges() for job in gaussian_jobs]
-    job_ids = [job.id for job in gaussian_jobs]
+    job_ids = [job.job_id for job in gaussian_jobs]
 
     # Compute distances, angles and dihedrals when necessary
     if not args['data']:
@@ -280,7 +280,7 @@ def get_input_arguments():
                         help='The basis set to use for all atoms')
     parser.add_argument('-m', '--memory', type=str, nargs='?', default='3GB',
                         help='Memory required per Gaussian calculation, i.e. per core')
-    parser.add_argument('-d', '--data', type=str, nargs='?',
+    parser.add_argument('-d', '--data', type=str, nargs='*',
                         help='Useful data to extract, such as bonds or angles\n'
                              'Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
                              'or D 3 8 9 1 (Dihedral 3-8-9-1)')
@@ -316,7 +316,7 @@ def get_input_arguments():
                 angles.append([next(iterator), next(iterator), next(iterator)])
             if i == 'D':
                 dihedrals.append([next(iterator), next(iterator), next(iterator), next(iterator)])
-        values['data'] = dict.fromkeys('bonds', 'angles', 'dihedrals')
+        values['data'] = dict.fromkeys(['bonds', 'angles', 'dihedrals'])
         values['data']['bonds'] = bonds
         values['data']['angles'] = angles
         values['data']['dihedrals'] = dihedrals
