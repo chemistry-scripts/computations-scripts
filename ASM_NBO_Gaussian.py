@@ -96,7 +96,10 @@ def main():
         coordinates = [job.get_coordinates() for job in gaussian_jobs]
         measured_data = [compute_measurements(coord, args['data']) for coord in coordinates]
     # Write NBO data
-    print_NBO_charges_to_file(NBO_values, job_ids, measured_data, output_file)
+    print_NBO_charges_to_file(charges_list=NBO_values,
+                              out_file=output_file,
+                              measures=measured_data,
+                              job_ids=job_ids)
 
 
 def compute_measurements(coordinates, required_data):
@@ -223,9 +226,9 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
     return Gaussian_Job(basedir, name, input_file, job_id, natoms)
 
 
-def print_NBO_charges_to_file(charges_list, file, measures, job_ids):
+def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
     """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
-    with open(file, mode='w+') as output_file:
+    with open(out_file, mode='w+') as output_file:
         for job_id, measured_data, charges in zip(job_ids, measures, charges_list):
             output_file.write(job_id.ljust(5) +
                               '   '.join(measured_data) +
@@ -310,7 +313,7 @@ def get_input_arguments():
     logger.debug("Functional: %s", values['functional'])
     logger.debug("Dispersion: %s", values['dispersion'])
     values['basisset'] = args.basisset
-    logger.debug("Basis set: %s", values['basiset'])
+    logger.debug("Basis set: %s", values['basisset'])
     values['memory'] = args.memory
     logger.debug("Memory: %s", values['memory'])
     if len(args.data) > 1:
