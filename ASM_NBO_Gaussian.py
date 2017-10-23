@@ -90,6 +90,8 @@ def main():
     job_ids = [job.job_id for job in gaussian_jobs]
 
     # Compute distances, angles and dihedrals when necessary
+    measured_data = []
+    logger.debug("Data to extract: %s", args['data'])
     if not args['data']:
         coordinates = [job.get_coordinates() for job in gaussian_jobs]
         measured_data = [compute_measurements(coord, args['data']) for coord in coordinates]
@@ -266,6 +268,7 @@ def list_elements(input_file):
 
 def get_input_arguments():
     """Check command line options and accordingly set computation parameters."""
+    logger = logging.getLogger()
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
@@ -294,7 +297,9 @@ def get_input_arguments():
     values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
                             'basisset', 'memory', 'data'])
     values['input_file'] = [os.path.abspath(i) for i in args.input_file]
+    logger.debug("Input files: %s", values['input_file'])
     values['output_file'] = os.path.abspath(args.output_file[0])
+    logger.debug("Output file: %s", values['output_file'])
     functional = args.functional.split('-')
     values['functional'] = functional[0]
     if len(functional) > 1:
@@ -302,8 +307,12 @@ def get_input_arguments():
             values['dispersion'] = 'GD3'
     else:
         values['dispersion'] = None
+    logger.debug("Functional: %s", values['functional'])
+    logger.debug("Dispersion: %s", values['dispersion'])
     values['basisset'] = args.basisset
+    logger.debug("Basis set: %s", values['basiset'])
     values['memory'] = args.memory
+    logger.debug("Memory: %s", values['memory'])
     if len(args.data) > 1:
         bonds = []
         angles = []
@@ -320,7 +329,7 @@ def get_input_arguments():
         values['data']['bonds'] = bonds
         values['data']['angles'] = angles
         values['data']['dihedrals'] = dihedrals
-
+    logger.debug("Data to extract: %s", values['data'])
     return values
 
 
