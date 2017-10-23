@@ -237,8 +237,8 @@ def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
             logger.debug("Printing job %s", job_id)
             line = str(job_id).ljust(5)
             if measures:
-                line += '   '.join(measures[i])
-            line += '   ' + '     '.join(charges_list[i]) + '\n'
+                line += '   '.join(str(measures[i]))
+            line += '   ' + '     '.join(str(charges_list[i])) + '\n'
             output_file.write(line)
 
 
