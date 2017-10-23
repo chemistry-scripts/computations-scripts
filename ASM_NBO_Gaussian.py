@@ -4,6 +4,7 @@ Perform an NBO analysis through Gaussian on every step of an IRC path.
 Takes an IRC computed from Gaussian, extract all intermediate geometries,
 then create input files, run them, and analyse the output.
 """
+# pylint: disable=invalid-name
 
 import argparse
 import os
@@ -25,6 +26,9 @@ def main():
     Prep all NBO computations
     Run Gaussian on each computation
     """
+    # pylint: disable=too-many-locals
+    # Since it is the main, it is too annoying to remove such a number of variables.
+
     # Setup logging
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -87,7 +91,7 @@ def main():
     job_ids = [job.id for job in gaussian_jobs]
 
     # Compute distances, angles and dihedrals when necessary
-    if len(args['data']) > 0:
+    if not args['data']:
         coordinates = [job.get_coordinates() for job in gaussian_jobs]
         measured_data = [compute_measurements(coord, args['data']) for coord in coordinates]
     # Write NBO data
@@ -95,7 +99,7 @@ def main():
 
 
 def compute_measurements(coordinates, required_data):
-    """Compute required measurements from coordinates"""
+    """Compute required measurements from coordinates."""
     # Initialize list
     extracted_data = []
 
@@ -176,7 +180,8 @@ def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
     # normalize vector 0 in order to project properly
     vector0 /= np.linalg.norm(vector0)
 
-    # Decomposition of vectors 1 and 2 into projection on vector 0 and other component, that is kept as proj1 and proj2
+    # Decomposition of vectors 1 and 2 into projection on vector 0 and other component,
+    # that is kept as proj1 and proj2
     proj1 = vector1 - np.dot(vector0, vector1) * vector0
     proj2 = vector2 - np.dot(vector0, vector2) * vector0
 
@@ -194,6 +199,8 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
 
     Return the input file as a list of lines
     """
+    # pylint: disable=too-many-arguments
+    # We need them all
     input_file = []
 
     # Put header
@@ -219,7 +226,9 @@ def print_NBO_charges_to_file(charges_list, file, measures, job_ids):
     """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
     with open(file, mode='w+') as output_file:
         for job_id, measured_data, charges in zip(job_ids, measures, charges_list):
-            output_file.write(job_id.ljust(5) + '   '.join(measured_data) + '     '.join(charges) + '\n')
+            output_file.write(job_id.ljust(5) +
+                              '   '.join(measured_data) +
+                              '     '.join(charges) + '\n')
 
 
 def number_of_atoms(input_file):
@@ -376,7 +385,7 @@ class Gaussian_Job():
     Class that can be used as a container for Gaussian jobs.
 
     Attributes:
-        - input (input file,  list of strings)
+        - input (input file, list of strings)
         - name (name of computation, string)
         - id (unique identifier, int)
         - natoms (number of atoms, int)
@@ -387,16 +396,21 @@ class Gaussian_Job():
 
     """
 
-    def __init__(self, basedir, name, input, id, natoms):
+    # pylint: disable=too-many-instance-attributes
+
+    def __init__(self, basedir, name, input_script, job_id, natoms):
         """Build  the Gaussian_job class."""
+        # pylint: disable=too-many-arguments
+        # We need them all
         self.name = name
-        self.input = input
-        self.id = id
+        self.input_script = input_script
+        self.job_id = job_id
         self.natoms = natoms
         # base directory from which all computations are started
         self.basedir = basedir
         # Set path as: /base/directory/my_name.000xx/
-        self.path = os.path.join(self.basedir, self.name.replace(" ", "_") + "." + str(self.id).zfill(4))
+        self.path = os.path.join(self.basedir,
+                                 self.name.replace(" ", "_") + "." + str(self.job_id).zfill(4))
         self.input_filename = self.name.replace(" ", "_") + ".com"
         self.output_filename = self.name.replace(" ", "_") + ".log"
 
@@ -404,19 +418,19 @@ class Gaussian_Job():
         """Start the job."""
         # Log computation start
         logger = logging.getLogger()
-        logger.info("Starting computation " + str(self.id))
+        logger.info("Starting computation " + str(self.job_id))
         # Get into workdir, start gaussian, then back to basedir
         os.chdir(self.path)
         os.system('g09 < ' + self.input_filename + ' > ' + self.output_filename)
         os.chdir(self.basedir)
         # Log end of computation
-        logger.info("Finished computation " + str(self.id))
+        logger.info("Finished computation " + str(self.job_id))
 
     def extract_NBO_charges(self):
-        """Extract NBO Charges parsing the outFile."""
+        """Extract NBO Charges parsing the output file."""
         # Log start
         logger = logging.getLogger()
-        logger.info("Parsing results from computation " + str(self.id))
+        logger.info("Parsing results from computation " + str(self.job_id))
 
         # Get into working directory
         os.chdir(self.path)
@@ -424,12 +438,12 @@ class Gaussian_Job():
         # Initialize charges list
         charges = []
 
-        with open(self.output_filename, mode='r') as outFile:
+        with open(self.output_filename, mode='r') as out_file:
             line = 'Foobar line'
             while line:
-                line = outFile.readline()
+                line = out_file.readline()
                 if 'Summary of Natural Population Analysis:' in line:
-                    logger.debug("ID " + str(self.id) + ": Found NPA table.")
+                    logger.debug("ID " + str(self.job_id) + ": Found NPA table.")
                     # We have the table we want for the charges
                     # Read five lines to remove the header:
                     # Summary of Natural Population Analysis:
@@ -438,16 +452,16 @@ class Gaussian_Job():
                     # Natural    ---------------------------------------------
                     # Atom No    Charge        Core      Valence    Rydberg      Total
                     # ----------------------------------------------------------------
-                    for i in range(0, 5):
-                        outFile.readline()
+                    for _ in range(0, 5):
+                        out_file.readline()
                     # Then we read the actual table:
-                    for i in range(0, self.natoms):
+                    for _ in range(0, self.natoms):
                         # Each line follow the header with the form:
                         # C  1    0.92349      1.99948     3.03282    0.04422     5.07651
-                        line = outFile.readline()
+                        line = out_file.readline()
                         line = line.split()
                         charges.append(line[2])
-                    logger.debug("ID " + str(self.id) + ": " +
+                    logger.debug("ID " + str(self.job_id) + ": " +
                                  "Charges = " + " ".join([str(i) for i in charges]))
                     # We have reached the end of the table, we can break the while loop
                     break
@@ -460,7 +474,7 @@ class Gaussian_Job():
         """Extract coordinates from output file."""
         # Log start
         logger = logging.getLogger()
-        logger.info("Extracting coordinates " + str(self.id))
+        logger.info("Extracting coordinates " + str(self.job_id))
 
         # Get into working directory
         os.chdir(self.path)
@@ -484,7 +498,7 @@ class Gaussian_Job():
         os.chdir(self.path)
         # Write input file
         with open(self.input_filename, mode='w') as input_file:
-            input_file.write("\n".join(self.input))
+            input_file.write("\n".join(self.input_script))
         # Get back to base directory
         os.chdir(self.basedir)
 
