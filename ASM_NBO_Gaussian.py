@@ -236,9 +236,19 @@ def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
         for (i, job_id) in enumerate(job_ids):
             logger.debug("Printing job %s", job_id)
             line = str(job_id).ljust(5)
+            # Separate job_id and measures
+            line += ' '
             if measures:
-                line += '   '.join(str(measures[i]))
-            line += '   ' + '     '.join(str(charges_list[i])) + '\n'
+                # Each measure has a maximum of three digits before decimal separation, plus a sign.
+                # It is thus maximum (with rounding to three digits after decimal) 8 in length.
+                line += ' '.join("{0:.3f}".format(value).rjust(8) for value in [measures[i]])
+            # Separate measures and charges
+            line += ' '
+            # Each charge is rounded to three digits after the decimal separator
+            # It is the same length as measures.
+            line += ' '.join(["{0:.3f}".format(charges).rjust(8) for charges in charges_list[i]])
+            # End of line
+            line += '\n'
             output_file.write(line)
 
 
