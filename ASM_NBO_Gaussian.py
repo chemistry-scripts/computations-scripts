@@ -111,21 +111,21 @@ def compute_measurements(coordinates, required_data):
     logger.debug("Coordinates: %s", coordinates)
     logger.debug("Required data: %s", required_data)
     # Extract all bonds
-    extracted_data.extend([distance_from_coordinates(coordinates[int(bond[0])],
-                                                     coordinates[int(bond[1])])
+    extracted_data.extend([distance_from_coordinates(coordinates[bond[0]],
+                                                     coordinates[bond[1]])
                            for bond in required_data['bonds']])
 
     # Extract all bonds
-    extracted_data.extend([angle_from_coordinates(coordinates[int(angle[0])],
-                                                  coordinates[int(angle[1])],
-                                                  coordinates[int(angle[2])])
+    extracted_data.extend([angle_from_coordinates(coordinates[angle[0]],
+                                                  coordinates[angle[1]],
+                                                  coordinates[angle[2]])
                            for angle in required_data['angles']])
 
     # Extract all bonds
-    extracted_data.extend([dihedral_from_coordinates(coordinates[int(dihedral[0])],
-                                                     coordinates[int(dihedral[1])],
-                                                     coordinates[int(dihedral[2])],
-                                                     coordinates[int(dihedral[3])])
+    extracted_data.extend([dihedral_from_coordinates(coordinates[dihedral[0]],
+                                                     coordinates[dihedral[1]],
+                                                     coordinates[dihedral[2]],
+                                                     coordinates[dihedral[3]])
                            for dihedral in required_data['dihedrals']])
 
     return extracted_data
