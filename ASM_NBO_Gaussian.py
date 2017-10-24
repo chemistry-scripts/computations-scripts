@@ -347,11 +347,17 @@ def get_input_arguments():
         iterator = iter(args.data)
         for i in iterator:
             if i == 'B':
-                bonds.append([next(iterator), next(iterator)])
+                bonds.append([int(next(iterator)) - 1,
+                              int(next(iterator)) - 1])
             if i == 'A':
-                angles.append([next(iterator), next(iterator), next(iterator)])
+                angles.append([int(next(iterator)) - 1,
+                               int(next(iterator)) - 1,
+                               int(next(iterator)) - 1])
             if i == 'D':
-                dihedrals.append([next(iterator), next(iterator), next(iterator), next(iterator)])
+                dihedrals.append([int(next(iterator)) - 1,
+                                  int(next(iterator)) - 1,
+                                  int(next(iterator)) - 1,
+                                  int(next(iterator)) - 1])
         values['data'] = dict.fromkeys(['bonds', 'angles', 'dihedrals'])
         values['data']['bonds'] = bonds
         values['data']['angles'] = angles
