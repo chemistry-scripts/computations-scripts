@@ -226,7 +226,7 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
     input_file.append("")
     input_file.append("")
 
-    return Gaussian_Job(basedir, name, input_file, job_id, natoms)
+    return GaussianJob(basedir, name, input_file, job_id, natoms)
 
 
 def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
@@ -421,7 +421,7 @@ def help_epilog():
     return 'Help epilog // To Fill'
 
 
-class Gaussian_Job():
+class GaussianJob:
     """
     Class that can be used as a container for Gaussian jobs.
 
@@ -440,7 +440,7 @@ class Gaussian_Job():
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, basedir, name, input_script, job_id, natoms):
-        """Build  the Gaussian_job class."""
+        """Build  the GaussianJob class."""
         # pylint: disable=too-many-arguments
         # We need them all
         self.name = name
