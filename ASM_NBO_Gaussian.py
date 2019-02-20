@@ -314,6 +314,11 @@ def get_input_arguments():
                         help='Useful data to extract, such as bonds or angles\n'
                              'Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
                              'or D 3 8 9 1 (Dihedral 3-8-9-1)')
+    parser.add_argument('-r', '--fragment', type=str, nargs='*',
+                        help='List of atoms in one of the fragments to consider.\n'
+                             'If absent, fragmentation is not considered.\n'
+                             'If present, all listed atoms (as numbers in geometry) are used in Frag 1,\n'
+                             'while others are added to Frag2.\n')
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -322,7 +327,7 @@ def get_input_arguments():
 
     # Get values from parser
     values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
-                            'basisset', 'memory', 'data'])
+                            'basisset', 'memory', 'data', 'frag1', 'frag2'])
     values['input_file'] = [os.path.abspath(i) for i in args.input_file]
     logger.debug("Input files: %s", values['input_file'])
     values['output_file'] = os.path.abspath(args.output_file[0])
@@ -363,6 +368,13 @@ def get_input_arguments():
         values['data']['angles'] = angles
         values['data']['dihedrals'] = dihedrals
     logger.debug("Data to extract: %s", values['data'])
+    if len(args.frag) > 1:
+        values['frag1'] = args.frag
+        natoms = number_of_atoms(values['input_file'])
+        atoms = range(1, natoms + 1)
+        values['frag2'] = [atom for atom in atoms if atom not in values['frag1']]
+    logger.debug("Fragment 1: %s", values['frag1'])
+    logger.debug("Fragment 2: %s", values['frag2'])
     return values
 
 
