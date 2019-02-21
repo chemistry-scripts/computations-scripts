@@ -11,9 +11,9 @@ import os
 import sys
 import logging
 from concurrent.futures import ProcessPoolExecutor
-import numpy as np
 from cclib.io import ccread
 from cclib.parser.utils import PeriodicTable
+import numpy as np
 
 
 def main():
@@ -47,9 +47,9 @@ def main():
     output_file = args['output_file']
     element_list = atom_types(args['input_file'][0])
     basedir = os.path.abspath(os.curdir)
-    logger.debug("Input files: " + " ".join([str(path) for path in input_files]))
-    logger.debug("Output file: " + str(output_file))
-    logger.debug("Current directory: " + str(basedir))
+    logger.debug("Input files: %s", " ".join([str(path) for path in input_files]))
+    logger.debug("Output file: %s", str(output_file))
+    logger.debug("Current directory: %s", str(basedir))
 
     logger.debug("Geometry extraction")
     geometries = []
@@ -418,8 +418,8 @@ def gaussian_input_parameters(args):
     # footer.append("PLOT")
     # footer.append("$END")
 
-    logger.debug("Header: \n" + '\n'.join(header))
-    logger.debug("Footer: \n" + '\n'.join(footer))
+    logger.debug("Header: \n %s", '\n'.join(header))
+    logger.debug("Footer: \n %s", '\n'.join(footer))
     return header, footer
 
 
@@ -471,19 +471,19 @@ class GaussianJob:
         """Start the job."""
         # Log computation start
         logger = logging.getLogger()
-        logger.info("Starting computation " + str(self.job_id))
+        logger.info("Starting computation %s", str(self.job_id))
         # Get into workdir, start gaussian, then back to basedir
         os.chdir(self.path)
         os.system('g09 < ' + self.input_filename + ' > ' + self.output_filename)
         os.chdir(self.basedir)
         # Log end of computation
-        logger.info("Finished computation " + str(self.job_id))
+        logger.info("Finished computation %s", str(self.job_id))
 
     def extract_NBO_charges(self):
         """Extract NBO Charges parsing the output file."""
         # Log start
         logger = logging.getLogger()
-        logger.info("Parsing results from computation " + str(self.job_id))
+        logger.info("Parsing results from computation %s", str(self.job_id))
 
         # Get into working directory
         os.chdir(self.path)
@@ -496,7 +496,7 @@ class GaussianJob:
             while line:
                 line = out_file.readline()
                 if 'Summary of Natural Population Analysis:' in line:
-                    logger.debug("ID " + str(self.job_id) + ": Found NPA table.")
+                    logger.debug("ID %s: Found NPA table.", str(self.job_id))
                     # We have the table we want for the charges
                     # Read five lines to remove the header:
                     # Summary of Natural Population Analysis:
@@ -514,8 +514,8 @@ class GaussianJob:
                         line = out_file.readline()
                         line = line.split()
                         charges.append(line[2])
-                    logger.debug("ID " + str(self.job_id) + ": " +
-                                 "Charges = " + " ".join([str(i) for i in charges]))
+                    logger.debug("ID %s: Charges = %s", str(self.job_id),
+                                 " ".join([str(i) for i in charges]))
                     # We have reached the end of the table, we can break the while loop
                     break
                 # End of if 'Summary of Natural Population Analysis:'
@@ -527,7 +527,7 @@ class GaussianJob:
         """Extract coordinates from output file."""
         # Log start
         logger = logging.getLogger()
-        logger.info("Extracting coordinates " + str(self.job_id))
+        logger.info("Extracting coordinates for job %s", str(self.job_id))
 
         # Get into working directory
         os.chdir(self.path)
