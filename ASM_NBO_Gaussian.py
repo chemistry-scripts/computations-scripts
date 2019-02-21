@@ -300,7 +300,7 @@ def get_input_arguments():
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument('-i', '--input_file', type=str, nargs='+',
-                        help='file(s) Containg IRC path')
+                        help='file(s) Containing IRC path')
     parser.add_argument('-o', '--output_file', type=str, nargs=1,
                         help='Output file in which to print the NBO charges')
     parser.add_argument('-f', '--functional', type=str, nargs='?', default='B3LYP-D3',
@@ -317,8 +317,8 @@ def get_input_arguments():
     parser.add_argument('-r', '--fragment', type=str, nargs='*',
                         help='List of atoms in one of the fragments to consider.\n'
                              'If absent, fragmentation is not considered.\n'
-                             'If present, all listed atoms (as numbers in geometry) are used in Frag 1,\n'
-                             'while others are added to Frag2.\n')
+                             'If present, all listed atoms (as numbers in geometry) are used in\n'
+                             'Frag 1, while others are added to Frag 0.\n')
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -372,9 +372,9 @@ def get_input_arguments():
         values['frag1'] = args.frag
         natoms = number_of_atoms(values['input_file'])
         atoms = range(1, natoms + 1)
-        values['frag2'] = [atom for atom in atoms if atom not in values['frag1']]
+        values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
+    logger.debug("Fragment 0: %s", values['frag0'])
     logger.debug("Fragment 1: %s", values['frag1'])
-    logger.debug("Fragment 2: %s", values['frag2'])
     return values
 
 
