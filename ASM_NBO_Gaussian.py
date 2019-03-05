@@ -327,7 +327,7 @@ def get_input_arguments():
 
     # Get values from parser
     values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
-                            'basisset', 'memory', 'data', 'frag1', 'frag2'])
+                            'basisset', 'memory', 'data', 'frag0', 'frag1'])
     values['input_file'] = [os.path.abspath(i) for i in args.input_file]
     logger.debug("Input files: %s", values['input_file'])
     values['output_file'] = os.path.abspath(args.output_file[0])
@@ -345,7 +345,7 @@ def get_input_arguments():
     logger.debug("Basis set: %s", values['basisset'])
     values['memory'] = args.memory
     logger.debug("Memory: %s", values['memory'])
-    if len(args.data) > 1:
+    if args.data:
         bonds = []
         angles = []
         dihedrals = []
@@ -368,8 +368,8 @@ def get_input_arguments():
         values['data']['angles'] = angles
         values['data']['dihedrals'] = dihedrals
     logger.debug("Data to extract: %s", values['data'])
-    if len(args.frag) > 1:
-        values['frag1'] = args.frag
+    if args.fragment:
+        values['frag1'] = args.fragment
         natoms = number_of_atoms(values['input_file'])
         atoms = range(1, natoms + 1)
         values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
