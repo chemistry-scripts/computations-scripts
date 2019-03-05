@@ -45,17 +45,23 @@ def main():
     args = get_input_arguments()
     input_files = args['input_file']
     output_file = args['output_file']
-    element_list = atom_types(args['input_file'][0])
+    element_list = atom_types(input_files[0])
+    fragment0 = args['frag0']
+    fragment1 = args['frag1']
     basedir = os.path.abspath(os.curdir)
     logger.debug("Input files: %s", " ".join([str(path) for path in input_files]))
     logger.debug("Output file: %s", str(output_file))
     logger.debug("Current directory: %s", str(basedir))
 
+    # Extract geometries from files
     logger.debug("Geometry extraction")
     geometries = []
     for input_file in input_files:
         geometries.extend(IRC_coordinates_from_input(input_file))
     logger.debug("Extracted geometries: " + str(len(geometries)))
+
+    # Split extracted geometries in two fragments (fragment 1 may be empty)
+    geometries_fragment0, geometries_fragment1 = split_geometries(geometries, fragment0, fragment1)
 
     logger.debug("Number of atoms extraction")
     natoms = number_of_atoms(input_files[0])
@@ -291,6 +297,23 @@ def list_elements(input_file):
     periodic_table = PeriodicTable()
     atom_list = [periodic_table.element[i] for i in atoms]
     return atom_list
+
+
+def split_geometries(geometries, frag0, frag1):
+    """
+    Returns two list extracted from geometries, splitted according to the frag0 and frag1 list
+    :param geometries:
+    :param frag0:
+    :param frag1:
+    :return:
+    """
+    print(np.shape(geometries))
+    print(frag0)
+    print(frag1)
+    geom_frag0 = [geometries[i] for i in frag0]
+    geom_frag1 = [geometries[i] for i in frag1]
+
+    return geom_frag0, geom_frag1
 
 
 def get_input_arguments():
