@@ -63,10 +63,14 @@ def main():
     # Split extracted geometries in two fragments (fragment 1 may be empty)
     geometries_fragment0, geometries_fragment1 = split_geometries(geometries, fragment0, fragment1)
 
+    # Split element list according to fragmentation
+    element_list_frag0, element_list_frag1 = split_elements(element_list, fragment0, fragment1)
     logger.debug("Number of atoms extraction")
     natoms = number_of_atoms(input_files[0])
     logger.debug("Retrieved number of atoms")
     logger.debug("natoms: " + str(natoms))
+    natoms_frag0 = len(element_list_frag0)
+    natoms_frag1 = len(element_list_frag1)
 
     # Get settings as a tuple
     logger.debug("Getting Gaussian input parameters")
