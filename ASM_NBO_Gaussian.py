@@ -65,6 +65,7 @@ def main():
 
     # Split element list according to fragmentation
     element_list_frag0, element_list_frag1 = split_elements(element_list, fragment0, fragment1)
+
     logger.debug("Number of atoms extraction")
     natoms = number_of_atoms(input_files[0])
     logger.debug("Retrieved number of atoms")
@@ -78,15 +79,25 @@ def main():
 
     gaussian_jobs = []
     # Prep a bunch of NBO computations
-    for i, geom in enumerate(geometries):
+    for i, geom in enumerate(geometries_fragment0):
         gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
-                                                     name="ASM_NBO",
+                                                     name="ASM_NBO_frag0",
                                                      geometry=geom,
                                                      job_id=i,
                                                      header=settings_head,
                                                      footer=settings_tail,
-                                                     natoms=natoms,
-                                                     element_list=element_list))
+                                                     natoms=natoms_frag0,
+                                                     element_list=element_list_frag0))
+    for i, geom in enumerate(geometries_fragment1):
+        gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
+                                                     name="ASM_NBO_frag1",
+                                                     geometry=geom,
+                                                     job_id=i,
+                                                     header=settings_head,
+                                                     footer=settings_tail,
+                                                     natoms=natoms_frag1,
+                                                     element_list=element_list_frag1))
+
     # Prepare all jobs (setup directories etc.)
     for job in gaussian_jobs:
         job.setup_computation()
@@ -303,6 +314,26 @@ def list_elements(input_file):
     return atom_list
 
 
+def split_elements(element_list, fragment0, fragment1):
+    """
+    Split element list according to fragment 0 and fragment 1 lists
+    :param element_list:
+    :param fragment0:
+    :param fragment1:
+    """
+
+    element_frag0 = []
+    element_frag1 = []
+
+    for i, element in enumerate(element_list):
+        if i + 1 in fragment0:
+            element_frag0.append(element)
+        elif i + 1 in fragment1:
+            element_frag1.append(element)
+
+    return element_frag0, element_frag1
+
+
 def split_geometries(geometries, frag0, frag1):
     """
     Returns two list extracted from geometries, split according to the frag0 and frag1 list
@@ -311,8 +342,6 @@ def split_geometries(geometries, frag0, frag1):
     :param frag1:
     :return:
     """
-    print(np.shape(geometries))
-
     geom_frag0 = []
     geom_frag1 = []
 
