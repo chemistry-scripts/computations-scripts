@@ -301,17 +301,30 @@ def list_elements(input_file):
 
 def split_geometries(geometries, frag0, frag1):
     """
-    Returns two list extracted from geometries, splitted according to the frag0 and frag1 list
+    Returns two list extracted from geometries, split according to the frag0 and frag1 list
     :param geometries:
     :param frag0:
     :param frag1:
     :return:
     """
     print(np.shape(geometries))
-    print(frag0)
-    print(frag1)
-    geom_frag0 = [geometries[i] for i in frag0]
-    geom_frag1 = [geometries[i] for i in frag1]
+
+    geom_frag0 = []
+    geom_frag1 = []
+
+    for step, geom in enumerate(geometries):
+        step_geom_frag0 = []
+        step_geom_frag1 = []
+        for atom_index, atom_coord in enumerate(geom):
+            if atom_index + 1 in frag0:
+                step_geom_frag0.append(atom_coord)
+            if atom_index + 1 in frag1:
+                step_geom_frag1.append(atom_coord)
+
+        geom_frag0.append(step_geom_frag0)
+        geom_frag1.append(step_geom_frag1)
+
+    logging.debug(np.shape(geom_frag0))
 
     return geom_frag0, geom_frag1
 
