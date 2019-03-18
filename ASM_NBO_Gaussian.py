@@ -337,7 +337,7 @@ def get_input_arguments():
                         help='Useful data to extract, such as bonds or angles\n'
                              'Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
                              'or D 3 8 9 1 (Dihedral 3-8-9-1)')
-    parser.add_argument('-r', '--fragment', type=str, nargs='*',
+    parser.add_argument('-r', '--fragment', type=int, nargs='*',
                         help='List of atoms in one of the fragments to consider.\n'
                              'If absent, fragmentation is not considered.\n'
                              'If present, all listed atoms (as numbers in geometry) are used in\n'
@@ -393,9 +393,9 @@ def get_input_arguments():
     logger.debug("Data to extract: %s", values['data'])
     if args.fragment:
         values['frag1'] = args.fragment
-        natoms = number_of_atoms(values['input_file'])
+        natoms = number_of_atoms(values['input_file'][0])
         atoms = range(1, natoms + 1)
-        values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
+    values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
     logger.debug("Fragment 0: %s", values['frag0'])
     logger.debug("Fragment 1: %s", values['frag1'])
     return values
