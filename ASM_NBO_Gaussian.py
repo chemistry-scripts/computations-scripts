@@ -397,10 +397,14 @@ def get_input_arguments():
     # Get values from parser
     values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
                             'basisset', 'memory', 'data', 'frag0', 'frag1'])
+
+    # Setup file names
     values['input_file'] = [os.path.abspath(i) for i in args.input_file]
     logger.debug("Input files: %s", values['input_file'])
     values['output_file'] = os.path.abspath(args.output_file[0])
     logger.debug("Output file: %s", values['output_file'])
+
+    # PArse functional (to split into functional and dispersion)
     functional = args.functional.split('-')
     values['functional'] = functional[0]
     if len(functional) > 1:
@@ -410,10 +414,16 @@ def get_input_arguments():
         values['dispersion'] = None
     logger.debug("Functional: %s", values['functional'])
     logger.debug("Dispersion: %s", values['dispersion'])
+
+    # Parse basis set
     values['basisset'] = args.basisset
     logger.debug("Basis set: %s", values['basisset'])
+
+    # Parse memory
     values['memory'] = args.memory
     logger.debug("Memory: %s", values['memory'])
+
+    # Parse data to extract
     if args.data:
         bonds = []
         angles = []
@@ -437,6 +447,8 @@ def get_input_arguments():
         values['data']['angles'] = angles
         values['data']['dihedrals'] = dihedrals
     logger.debug("Data to extract: %s", values['data'])
+
+    # Parse fragmentation
     if args.fragment:
         values['frag1'] = args.fragment
         natoms = number_of_atoms(values['input_file'][0])
@@ -444,6 +456,8 @@ def get_input_arguments():
     values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
     logger.debug("Fragment 0: %s", values['frag0'])
     logger.debug("Fragment 1: %s", values['frag1'])
+
+    # All values are retrieved, return the table
     return values
 
 
