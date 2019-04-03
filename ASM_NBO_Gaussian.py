@@ -30,7 +30,7 @@ def main():
 
     # Setup logging
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
@@ -75,7 +75,9 @@ def main():
 
     # Get settings as a tuple
     logger.debug("Getting Gaussian input parameters")
-    settings_head, settings_tail = gaussian_input_parameters(args)
+    settings_head = gaussian_header(args)
+    settings_tail_frag0 = gaussian_footer(args, element_list_frag0)
+    settings_tail_frag1 = gaussian_footer(args, element_list_frag1)
 
     gaussian_jobs = []
     # Prep a bunch of NBO computations
@@ -85,7 +87,7 @@ def main():
                                                      geometry=geom,
                                                      job_id=i,
                                                      header=settings_head,
-                                                     footer=settings_tail,
+                                                     footer=settings_tail_frag0,
                                                      natoms=natoms_frag0,
                                                      element_list=element_list_frag0))
     for i, geom in enumerate(geometries_fragment1):
@@ -94,7 +96,7 @@ def main():
                                                      geometry=geom,
                                                      job_id=i,
                                                      header=settings_head,
-                                                     footer=settings_tail,
+                                                     footer=settings_tail_frag1,
                                                      natoms=natoms_frag1,
                                                      element_list=element_list_frag1))
 
@@ -257,8 +259,9 @@ def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
         for (i, job_id) in enumerate(job_ids):
             logger.debug("Printing job %s", job_id)
             logger.debug("Job_id: %s", job_id)
-            logger.debug("Measures: %s", measures[i])
-            logger.debug("Type: %s", type(measures[i][0]))
+            if measures:
+                logger.debug("Measures: %s", measures[i])
+                logger.debug("Type: %s", type(measures[i][0]))
             logger.debug("Charges: %s", charges_list[i])
             logger.debug("Type: %s", type(charges_list[i][0]))
 
@@ -295,20 +298,6 @@ def atom_types(input_file):
     """
     file = ccread(input_file)
     atoms = file.atomnos.tolist()
-    periodic_table = PeriodicTable()
-    atom_list = [periodic_table.element[i] for i in atoms]
-    return atom_list
-
-
-def list_elements(input_file):
-    """
-    Return a list of all unique elements used in the computation.
-
-    The list will look like:
-    ['C', 'H', 'N', 'P']
-    """
-    file = ccread(input_file)
-    atoms = dict.fromkeys(file.atomnos.tolist())
     periodic_table = PeriodicTable()
     atom_list = [periodic_table.element[i] for i in atoms]
     return atom_list
@@ -465,16 +454,15 @@ def get_input_arguments():
     return values
 
 
-def gaussian_input_parameters(args):
+def gaussian_header(args):
     """
-    Return a tuple containing the top and bottom part used for the Gaussian calculation.
+    Return the top part used for the Gaussian calculation.
 
-    Both parts are lists of strings.
+    It is a list of strings.
     args is the dictionary coming from parsing the command line
     """
     logger = logging.getLogger()
     header = []
-    footer = []
     header.append('%NProcShared=1')
     # header.append('%Mem=' + args['memory'])
     route = '# ' + args['functional'] + " "
@@ -490,8 +478,23 @@ def gaussian_input_parameters(args):
     # This is a singlet. Careful for other systems!
     header.append('0 1')
 
+    logger.debug("Header: \n %s", '\n'.join(header))
+    return header
+
+
+def gaussian_footer(args, element_list_frag):
+    """
+    Return the top part used for the Gaussian calculation.
+
+    It is a list of strings.
+    args is the dictionary coming from parsing the command line
+    """
+    logger = logging.getLogger()
+    footer = []
+
     # Basis set is the same for all elements. No ECP either.
-    elements = list_elements(args['input_file'][0])
+    elements = list(set(element_list_frag))
+
     elements = ' '.join(elements)
     basisset = args['basisset']
     footer.append(elements + ' 0')
@@ -505,9 +508,9 @@ def gaussian_input_parameters(args):
     # footer.append("PLOT")
     # footer.append("$END")
 
-    logger.debug("Header: \n %s", '\n'.join(header))
     logger.debug("Footer: \n %s", '\n'.join(footer))
-    return header, footer
+
+    return footer
 
 
 def help_description():
