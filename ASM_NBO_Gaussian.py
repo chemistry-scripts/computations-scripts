@@ -453,7 +453,11 @@ def get_input_arguments():
         values['frag1'] = args.fragment
         natoms = number_of_atoms(values['input_file'][0])
         atoms = range(1, natoms + 1)
-    values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
+        values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
+    else:
+        values['frag1'] = []
+        values['frag0'] = [atom for atom in range(1, number_of_atoms(values['input_file'][0] + 1))]
+
     logger.debug("Fragment 0: %s", values['frag0'])
     logger.debug("Fragment 1: %s", values['frag1'])
 
