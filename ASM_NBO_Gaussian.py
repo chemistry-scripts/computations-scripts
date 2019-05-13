@@ -35,7 +35,7 @@ def main():
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+    formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(message)s")
     stream_handler.setFormatter(formatter)
 
     logger.addHandler(stream_handler)
@@ -43,11 +43,11 @@ def main():
     # Retrieve command line values
     logger.debug("Retrieving input arguments")
     args = get_input_arguments()
-    input_files = args['input_file']
-    output_file = args['output_file']
+    input_files = args["input_file"]
+    output_file = args["output_file"]
     element_list = atom_types(input_files[0])
-    fragment0 = args['frag0']
-    fragment1 = args['frag1']
+    fragment0 = args["frag0"]
+    fragment1 = args["frag1"]
     basedir = os.path.abspath(os.curdir)
     logger.debug("Input files: %s", " ".join([str(path) for path in input_files]))
     logger.debug("Output file: %s", str(output_file))
@@ -61,10 +61,14 @@ def main():
     logger.debug("Extracted geometries: " + str(len(geometries)))
 
     # Split extracted geometries in two fragments (fragment 1 may be empty)
-    geometries_fragment0, geometries_fragment1 = split_geometries(geometries, fragment0, fragment1)
+    geometries_fragment0, geometries_fragment1 = split_geometries(
+        geometries, fragment0, fragment1
+    )
 
     # Split element list according to fragmentation
-    element_list_frag0, element_list_frag1 = split_elements(element_list, fragment0, fragment1)
+    element_list_frag0, element_list_frag1 = split_elements(
+        element_list, fragment0, fragment1
+    )
 
     logger.debug("Number of atoms extraction")
     natoms = number_of_atoms(input_files[0])
@@ -82,23 +86,31 @@ def main():
     gaussian_jobs = []
     # Prep a bunch of NBO computations
     for i, geom in enumerate(geometries_fragment0):
-        gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
-                                                     name="ASM_NBO_frag0",
-                                                     geometry=geom,
-                                                     job_id=i,
-                                                     header=settings_head,
-                                                     footer=settings_tail_frag0,
-                                                     natoms=natoms_frag0,
-                                                     element_list=element_list_frag0))
+        gaussian_jobs.append(
+            prepare_NBO_computation(
+                basedir=basedir,
+                name="ASM_NBO_frag0",
+                geometry=geom,
+                job_id=i,
+                header=settings_head,
+                footer=settings_tail_frag0,
+                natoms=natoms_frag0,
+                element_list=element_list_frag0,
+            )
+        )
     for i, geom in enumerate(geometries_fragment1):
-        gaussian_jobs.append(prepare_NBO_computation(basedir=basedir,
-                                                     name="ASM_NBO_frag1",
-                                                     geometry=geom,
-                                                     job_id=i,
-                                                     header=settings_head,
-                                                     footer=settings_tail_frag1,
-                                                     natoms=natoms_frag1,
-                                                     element_list=element_list_frag1))
+        gaussian_jobs.append(
+            prepare_NBO_computation(
+                basedir=basedir,
+                name="ASM_NBO_frag1",
+                geometry=geom,
+                job_id=i,
+                header=settings_head,
+                footer=settings_tail_frag1,
+                natoms=natoms_frag1,
+                element_list=element_list_frag1,
+            )
+        )
 
     # Prepare all jobs (setup directories etc.)
     for job in gaussian_jobs:
@@ -114,15 +126,19 @@ def main():
 
     # Compute distances, angles and dihedrals when necessary
     measured_data = []
-    logger.debug("Data to extract: %s", args['data'])
-    if args['data']:
+    logger.debug("Data to extract: %s", args["data"])
+    if args["data"]:
         coordinates = [job.get_coordinates() for job in gaussian_jobs]
-        measured_data = [compute_measurements(coord, args['data']) for coord in coordinates]
+        measured_data = [
+            compute_measurements(coord, args["data"]) for coord in coordinates
+        ]
     # Write NBO data
-    print_NBO_charges_to_file(charges_list=NBO_values,
-                              out_file=output_file,
-                              measures=measured_data,
-                              job_ids=job_ids)
+    print_NBO_charges_to_file(
+        charges_list=NBO_values,
+        out_file=output_file,
+        measures=measured_data,
+        job_ids=job_ids,
+    )
 
 
 def compute_measurements(coordinates, required_data):
@@ -134,22 +150,35 @@ def compute_measurements(coordinates, required_data):
     logger.debug("Coordinates: %s", coordinates)
     logger.debug("Required data: %s", required_data)
     # Extract all bonds
-    extracted_data.extend([distance_from_coordinates(coordinates[bond[0]],
-                                                     coordinates[bond[1]])
-                           for bond in required_data['bonds']])
+    extracted_data.extend(
+        [
+            distance_from_coordinates(coordinates[bond[0]], coordinates[bond[1]])
+            for bond in required_data["bonds"]
+        ]
+    )
 
     # Extract all bonds
-    extracted_data.extend([angle_from_coordinates(coordinates[angle[0]],
-                                                  coordinates[angle[1]],
-                                                  coordinates[angle[2]])
-                           for angle in required_data['angles']])
+    extracted_data.extend(
+        [
+            angle_from_coordinates(
+                coordinates[angle[0]], coordinates[angle[1]], coordinates[angle[2]]
+            )
+            for angle in required_data["angles"]
+        ]
+    )
 
     # Extract all bonds
-    extracted_data.extend([dihedral_from_coordinates(coordinates[dihedral[0]],
-                                                     coordinates[dihedral[1]],
-                                                     coordinates[dihedral[2]],
-                                                     coordinates[dihedral[3]])
-                           for dihedral in required_data['dihedrals']])
+    extracted_data.extend(
+        [
+            dihedral_from_coordinates(
+                coordinates[dihedral[0]],
+                coordinates[dihedral[1]],
+                coordinates[dihedral[2]],
+                coordinates[dihedral[3]],
+            )
+            for dihedral in required_data["dihedrals"]
+        ]
+    )
 
     return extracted_data
 
@@ -157,16 +186,16 @@ def compute_measurements(coordinates, required_data):
 def IRC_coordinates_to_xyz_file(filename, geometries):
     """Export coordinates in geometries table to a file straight in the working directory."""
     # Open file
-    with open(filename, mode='w+') as xyz_file:
+    with open(filename, mode="w+") as xyz_file:
         # Iterate over molecules
         for i in range(0, len(geometries)):
             # For each molecule, write "New molecule", the put the geometry as C 0.00 1.00 2.00
-            xyz_file.write('New molecule\n')
+            xyz_file.write("New molecule\n")
             for j in range(0, len(geometries[i])):
                 for k in range(0, len(geometries[i][j])):
-                    xyz_file.write(str(geometries[i][j][k]) + '       ')
-                xyz_file.write('\n')
-            xyz_file.write('\n\n')
+                    xyz_file.write(str(geometries[i][j][k]) + "       ")
+                xyz_file.write("\n")
+            xyz_file.write("\n\n")
     return
 
 
@@ -175,7 +204,7 @@ def IRC_coordinates_from_input(input_file):
     file = ccread(input_file, optdone_as_list=True)
     new_indexes = [x for x, y in enumerate(file.optstatus) if y & file.OPT_NEW > 0]
     # new_indexes finishes with 0, so has to finish with -1 for the last index.
-    last_indexes = [x - 1 for x in new_indexes[1:len(new_indexes)] + [new_indexes[0]]]
+    last_indexes = [x - 1 for x in new_indexes[1 : len(new_indexes)] + [new_indexes[0]]]
     # file.atomcoords is an ndarray, so can be accessed with a list!
     coordinates = file.atomcoords[last_indexes]
     return coordinates.tolist()
@@ -191,7 +220,9 @@ def angle_from_coordinates(coord1, coord2, coord3):
     bond21 = coord1 - coord2
     bond23 = coord3 - coord2
 
-    cosine_angle = np.dot(bond21, bond23) / (np.linalg.norm(bond21) * np.linalg.norm(bond23))
+    cosine_angle = np.dot(bond21, bond23) / (
+        np.linalg.norm(bond21) * np.linalg.norm(bond23)
+    )
     angle = np.arccos(cosine_angle)
 
     return np.degrees(angle)
@@ -223,7 +254,9 @@ def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
     return np.degrees(np.arctan2(dot2, dot1))
 
 
-def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, natoms, element_list):
+def prepare_NBO_computation(
+    basedir, name, geometry, job_id, header, footer, natoms, element_list
+):
     """
     From geometry, header, footer, create the input file.
 
@@ -237,10 +270,16 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
     input_file.extend(header)
 
     # Add geometry + blank line
-    input_file.extend([' '.join([element_list[i].ljust(5)] +
-                                ["{:.6f}".format(s).rjust(25) for s in atom])
-                       for i, atom in enumerate(geometry)])
-    input_file.append('')
+    input_file.extend(
+        [
+            " ".join(
+                [element_list[i].ljust(5)]
+                + ["{:.6f}".format(s).rjust(25) for s in atom]
+            )
+            for i, atom in enumerate(geometry)
+        ]
+    )
+    input_file.append("")
 
     # Add footer
     input_file.extend(footer)
@@ -255,7 +294,7 @@ def prepare_NBO_computation(basedir, name, geometry, job_id, header, footer, nat
 def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
     """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
     logger = logging.getLogger()
-    with open(out_file, mode='w+') as output_file:
+    with open(out_file, mode="w+") as output_file:
         for (i, job_id) in enumerate(job_ids):
             logger.debug("Printing job %s", job_id)
             logger.debug("Job_id: %s", job_id)
@@ -267,19 +306,25 @@ def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
 
             line = str(job_id).ljust(5)
             # Separate job_id and measures
-            line += ' '
+            line += " "
             if measures:
                 # Each measure has a maximum of three digits before decimal separation, plus a sign.
                 # It is thus maximum (with rounding to three digits after decimal) 8 in length.
-                line += ' '.join("{0:.3f}".format(value).rjust(8) for value in measures[i])
+                line += " ".join(
+                    "{0:.3f}".format(value).rjust(8) for value in measures[i]
+                )
             # Separate measures and charges
-            line += ' '
+            line += " "
             # Each charge is rounded to three digits after the decimal separator
             # It is the same length as measures.
-            line += ' '.join(["{0:.3f}".format(float(charges)).rjust(8)
-                              for charges in charges_list[i]])
+            line += " ".join(
+                [
+                    "{0:.3f}".format(float(charges)).rjust(8)
+                    for charges in charges_list[i]
+                ]
+            )
             # End of line
-            line += '\n'
+            line += "\n"
             output_file.write(line)
 
 
@@ -354,29 +399,64 @@ def split_geometries(geometries, frag0, frag1):
 def get_input_arguments():
     """Check command line options and accordingly set computation parameters."""
     logger = logging.getLogger()
-    parser = argparse.ArgumentParser(description=help_description(),
-                                     epilog=help_epilog())
+    parser = argparse.ArgumentParser(
+        description=help_description(), epilog=help_epilog()
+    )
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('-i', '--input_file', type=str, nargs='+',
-                        help='file(s) Containing IRC path')
-    parser.add_argument('-o', '--output_file', type=str, nargs=1,
-                        help='Output file in which to print the NBO charges')
-    parser.add_argument('-f', '--functional', type=str, nargs='?', default='B3LYP-D3',
-                        help='Functional used for the computation, as B3LYP-D3 or M062X\n'
-                             'Hyphen will split into functional/dispersion parts when applicable')
-    parser.add_argument('-b', '--basisset', type=str, nargs='?', default='6-31G*',
-                        help='The basis set to use for all atoms')
-    parser.add_argument('-m', '--memory', type=str, nargs='?', default='3GB',
-                        help='Memory required per Gaussian calculation, i.e. per core')
-    parser.add_argument('-d', '--data', type=str, nargs='*',
-                        help='Useful data to extract, such as bonds or angles\n'
-                             'Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n'
-                             'or D 3 8 9 1 (Dihedral 3-8-9-1)')
-    parser.add_argument('-r', '--fragment', type=int, nargs='*',
-                        help='List of atoms in one of the fragments to consider.\n'
-                             'If absent, fragmentation is not considered.\n'
-                             'If present, all listed atoms (as numbers in geometry) are used in\n'
-                             'Frag 1, while others are added to Frag 0.\n')
+    parser.add_argument(
+        "-i", "--input_file", type=str, nargs="+", help="file(s) Containing IRC path"
+    )
+    parser.add_argument(
+        "-o",
+        "--output_file",
+        type=str,
+        nargs=1,
+        help="Output file in which to print the NBO charges",
+    )
+    parser.add_argument(
+        "-f",
+        "--functional",
+        type=str,
+        nargs="?",
+        default="B3LYP-D3",
+        help="Functional used for the computation, as B3LYP-D3 or M062X\n"
+        "Hyphen will split into functional/dispersion parts when applicable",
+    )
+    parser.add_argument(
+        "-b",
+        "--basisset",
+        type=str,
+        nargs="?",
+        default="6-31G*",
+        help="The basis set to use for all atoms",
+    )
+    parser.add_argument(
+        "-m",
+        "--memory",
+        type=str,
+        nargs="?",
+        default="3GB",
+        help="Memory required per Gaussian calculation, i.e. per core",
+    )
+    parser.add_argument(
+        "-d",
+        "--data",
+        type=str,
+        nargs="*",
+        help="Useful data to extract, such as bonds or angles\n"
+        "Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n"
+        "or D 3 8 9 1 (Dihedral 3-8-9-1)",
+    )
+    parser.add_argument(
+        "-r",
+        "--fragment",
+        type=int,
+        nargs="*",
+        help="List of atoms in one of the fragments to consider.\n"
+        "If absent, fragmentation is not considered.\n"
+        "If present, all listed atoms (as numbers in geometry) are used in\n"
+        "Frag 1, while others are added to Frag 0.\n",
+    )
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -384,33 +464,44 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion',
-                            'basisset', 'memory', 'data', 'frag0', 'frag1'])
+    values = dict.fromkeys(
+        [
+            "input_file",
+            "output_file",
+            "functional",
+            "dispersion",
+            "basisset",
+            "memory",
+            "data",
+            "frag0",
+            "frag1",
+        ]
+    )
 
     # Setup file names
-    values['input_file'] = [os.path.abspath(i) for i in args.input_file]
-    logger.debug("Input files: %s", values['input_file'])
-    values['output_file'] = os.path.abspath(args.output_file[0])
-    logger.debug("Output file: %s", values['output_file'])
+    values["input_file"] = [os.path.abspath(i) for i in args.input_file]
+    logger.debug("Input files: %s", values["input_file"])
+    values["output_file"] = os.path.abspath(args.output_file[0])
+    logger.debug("Output file: %s", values["output_file"])
 
     # PArse functional (to split into functional and dispersion)
-    functional = args.functional.split('-')
-    values['functional'] = functional[0]
+    functional = args.functional.split("-")
+    values["functional"] = functional[0]
     if len(functional) > 1:
-        if functional[1] == 'GD3' or functional[1] == 'D3':
-            values['dispersion'] = 'GD3'
+        if functional[1] == "GD3" or functional[1] == "D3":
+            values["dispersion"] = "GD3"
     else:
-        values['dispersion'] = None
-    logger.debug("Functional: %s", values['functional'])
-    logger.debug("Dispersion: %s", values['dispersion'])
+        values["dispersion"] = None
+    logger.debug("Functional: %s", values["functional"])
+    logger.debug("Dispersion: %s", values["dispersion"])
 
     # Parse basis set
-    values['basisset'] = args.basisset
-    logger.debug("Basis set: %s", values['basisset'])
+    values["basisset"] = args.basisset
+    logger.debug("Basis set: %s", values["basisset"])
 
     # Parse memory
-    values['memory'] = args.memory
-    logger.debug("Memory: %s", values['memory'])
+    values["memory"] = args.memory
+    logger.debug("Memory: %s", values["memory"])
 
     # Parse data to extract
     if args.data:
@@ -419,36 +510,45 @@ def get_input_arguments():
         dihedrals = []
         iterator = iter(args.data)
         for i in iterator:
-            if i == 'B':
-                bonds.append([int(next(iterator)) - 1,
-                              int(next(iterator)) - 1])
-            if i == 'A':
-                angles.append([int(next(iterator)) - 1,
-                               int(next(iterator)) - 1,
-                               int(next(iterator)) - 1])
-            if i == 'D':
-                dihedrals.append([int(next(iterator)) - 1,
-                                  int(next(iterator)) - 1,
-                                  int(next(iterator)) - 1,
-                                  int(next(iterator)) - 1])
-        values['data'] = dict.fromkeys(['bonds', 'angles', 'dihedrals'])
-        values['data']['bonds'] = bonds
-        values['data']['angles'] = angles
-        values['data']['dihedrals'] = dihedrals
-    logger.debug("Data to extract: %s", values['data'])
+            if i == "B":
+                bonds.append([int(next(iterator)) - 1, int(next(iterator)) - 1])
+            if i == "A":
+                angles.append(
+                    [
+                        int(next(iterator)) - 1,
+                        int(next(iterator)) - 1,
+                        int(next(iterator)) - 1,
+                    ]
+                )
+            if i == "D":
+                dihedrals.append(
+                    [
+                        int(next(iterator)) - 1,
+                        int(next(iterator)) - 1,
+                        int(next(iterator)) - 1,
+                        int(next(iterator)) - 1,
+                    ]
+                )
+        values["data"] = dict.fromkeys(["bonds", "angles", "dihedrals"])
+        values["data"]["bonds"] = bonds
+        values["data"]["angles"] = angles
+        values["data"]["dihedrals"] = dihedrals
+    logger.debug("Data to extract: %s", values["data"])
 
     # Parse fragmentation
     if args.fragment:
-        values['frag1'] = args.fragment
-        natoms = number_of_atoms(values['input_file'][0])
+        values["frag1"] = args.fragment
+        natoms = number_of_atoms(values["input_file"][0])
         atoms = range(1, natoms + 1)
-        values['frag0'] = [atom for atom in atoms if atom not in values['frag1']]
+        values["frag0"] = [atom for atom in atoms if atom not in values["frag1"]]
     else:
-        values['frag1'] = []
-        values['frag0'] = [atom for atom in range(1, number_of_atoms(values['input_file'][0] + 1))]
+        values["frag1"] = []
+        values["frag0"] = [
+            atom for atom in range(1, number_of_atoms(values["input_file"][0] + 1))
+        ]
 
-    logger.debug("Fragment 0: %s", values['frag0'])
-    logger.debug("Fragment 1: %s", values['frag1'])
+    logger.debug("Fragment 0: %s", values["frag0"])
+    logger.debug("Fragment 1: %s", values["frag1"])
 
     # All values are retrieved, return the table
     return values
@@ -463,22 +563,22 @@ def gaussian_header(args):
     """
     logger = logging.getLogger()
     header = []
-    header.append('%NProcShared=1')
+    header.append("%NProcShared=1")
     # header.append('%Mem=' + args['memory'])
-    route = '# ' + args['functional'] + " "
-    if args['dispersion'] is not None:
-        route += "EmpiricalDispersion=" + args['dispersion'] + " "
+    route = "# " + args["functional"] + " "
+    if args["dispersion"] is not None:
+        route += "EmpiricalDispersion=" + args["dispersion"] + " "
     # route += "gen pop=(nbo6read)"
     route += "gen pop=(npa)"
     header.append(route)
-    header.append('')
+    header.append("")
     # To update probably
-    header.append('Title of computation')
-    header.append('')
+    header.append("Title of computation")
+    header.append("")
     # This is a singlet. Careful for other systems!
-    header.append('0 1')
+    header.append("0 1")
 
-    logger.debug("Header: \n %s", '\n'.join(header))
+    logger.debug("Header: \n %s", "\n".join(header))
     return header
 
 
@@ -495,12 +595,12 @@ def gaussian_footer(args, element_list_frag):
     # Basis set is the same for all elements. No ECP either.
     elements = list(set(element_list_frag))
 
-    elements = ' '.join(elements)
-    basisset = args['basisset']
-    footer.append(elements + ' 0')
+    elements = " ".join(elements)
+    basisset = args["basisset"]
+    footer.append(elements + " 0")
     footer.append(basisset)
     footer.append("****")
-    footer.append('')
+    footer.append("")
 
     # footer.append("$NBO")
     # # NBO_FILES should be updated to something more useful
@@ -508,19 +608,19 @@ def gaussian_footer(args, element_list_frag):
     # footer.append("PLOT")
     # footer.append("$END")
 
-    logger.debug("Footer: \n %s", '\n'.join(footer))
+    logger.debug("Footer: \n %s", "\n".join(footer))
 
     return footer
 
 
 def help_description():
     """Return description of program for help message."""
-    return 'Help Description // To fill'
+    return "Help Description // To fill"
 
 
 def help_epilog():
     """Return additionnal help message."""
-    return 'Help epilog // To Fill'
+    return "Help epilog // To Fill"
 
 
 class GaussianJob:
@@ -552,8 +652,9 @@ class GaussianJob:
         # base directory from which all computations are started
         self.basedir = basedir
         # Set path as: /base/directory/my_name.000xx/
-        self.path = os.path.join(self.basedir,
-                                 self.name.replace(" ", "_") + "." + str(self.job_id).zfill(4))
+        self.path = os.path.join(
+            self.basedir, self.name.replace(" ", "_") + "." + str(self.job_id).zfill(4)
+        )
         self.input_filename = self.name.replace(" ", "_") + ".com"
         self.output_filename = self.name.replace(" ", "_") + ".log"
 
@@ -564,7 +665,7 @@ class GaussianJob:
         logger.info("Starting computation %s", str(self.job_id))
         # Get into workdir, start gaussian, then back to basedir
         os.chdir(self.path)
-        os.system('g09 < ' + self.input_filename + ' > ' + self.output_filename)
+        os.system("g09 < " + self.input_filename + " > " + self.output_filename)
         os.chdir(self.basedir)
         # Log end of computation
         logger.info("Finished computation %s", str(self.job_id))
@@ -581,11 +682,11 @@ class GaussianJob:
         # Initialize charges list
         charges = []
 
-        with open(self.output_filename, mode='r') as out_file:
-            line = 'Foobar line'
+        with open(self.output_filename, mode="r") as out_file:
+            line = "Foobar line"
             while line:
                 line = out_file.readline()
-                if 'Summary of Natural Population Analysis:' in line:
+                if "Summary of Natural Population Analysis:" in line:
                     logger.debug("ID %s: Found NPA table.", str(self.job_id))
                     # We have the table we want for the charges
                     # Read five lines to remove the header:
@@ -604,8 +705,11 @@ class GaussianJob:
                         line = out_file.readline()
                         line = line.split()
                         charges.append(line[2])
-                    logger.debug("ID %s: Charges = %s", str(self.job_id),
-                                 " ".join([str(i) for i in charges]))
+                    logger.debug(
+                        "ID %s: Charges = %s",
+                        str(self.job_id),
+                        " ".join([str(i) for i in charges]),
+                    )
                     # We have reached the end of the table, we can break the while loop
                     break
                 # End of if 'Summary of Natural Population Analysis:'
@@ -640,11 +744,11 @@ class GaussianJob:
         # Go into working directory
         os.chdir(self.path)
         # Write input file
-        with open(self.input_filename, mode='w') as input_file:
+        with open(self.input_filename, mode="w") as input_file:
             input_file.write("\n".join(self.input_script))
         # Get back to base directory
         os.chdir(self.basedir)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -13,8 +13,8 @@ def main():
     """
     # Retrieve command line values
     args = get_input_arguments()
-    input_file = args['input_file']
-    output_file = args['output_file']
+    input_file = args["input_file"]
+    output_file = args["output_file"]
 
     # Init PLAMS, Setting up a plams.$PID directory in the working dir
     init()
@@ -31,7 +31,9 @@ def main():
     for job in NBO_jobs:
         job.run()
     # NBO_values is a list of list of charges
-    NBO_values = [extract_NBO_charges(job._filenames.get('out'), natoms) for job in NBO_jobs]
+    NBO_values = [
+        extract_NBO_charges(job._filenames.get("out"), natoms) for job in NBO_jobs
+    ]
     # Write NBO data
     print_NBO_charges_to_file(NBO_values, output_file)
 
@@ -44,14 +46,14 @@ def IRC_coordinates_to_xyz_file(filename, geometries):
         Export coordinates in geometries table to a file 'filename'
         straight in the working directory
     """
-    with open(filename, mode='w+') as XYZ:
+    with open(filename, mode="w+") as XYZ:
         for i in range(0, len(geometries)):
-            XYZ.write('New molecule\n')
+            XYZ.write("New molecule\n")
             for j in range(0, len(geometries[i])):
                 for k in range(0, len(geometries[i][j])):
-                    XYZ.write(str(geometries[i][j][k]) + '       ')
-                XYZ.write('\n')
-            XYZ.write('\n\n')
+                    XYZ.write(str(geometries[i][j][k]) + "       ")
+                XYZ.write("\n")
+            XYZ.write("\n\n")
     return
 
 
@@ -62,7 +64,12 @@ def geometry_to_molecule(geometry):
     mol = Molecule()
 
     for i in range(0, len(geometry)):
-        mol.add_atom(Atom(symbol=geometry[i][0], coords=(geometry[i][1], geometry[i][2], geometry[i][3])))
+        mol.add_atom(
+            Atom(
+                symbol=geometry[i][0],
+                coords=(geometry[i][1], geometry[i][2], geometry[i][3]),
+            )
+        )
 
     return mol
 
@@ -75,19 +82,22 @@ def IRC_coordinates_from_t21(input_file):
     t21 = KFReader(input_file)
 
     # Number of atoms: 7
-    natoms = t21.read('Geometry', 'nr of atoms')
+    natoms = t21.read("Geometry", "nr of atoms")
     # atom types as indexes: [1, 2, 2, 3, 3, 4, 3]
-    aatoms = t21.read('Geometry', 'fragment and atomtype index')[natoms:]
+    aatoms = t21.read("Geometry", "fragment and atomtype index")[natoms:]
     # Atom symbols as list: ['C', 'O', 'H', 'B']
-    xatoms = str(t21.read('Geometry', 'atomtype')).split()
+    xatoms = str(t21.read("Geometry", "atomtype")).split()
     # Actual list of atoms as used in geometry: ['C', 'O', 'O', 'H', 'H', 'B', 'H']
-    satoms = [xatoms[aatoms[order - 1] - 1] for order in t21.read('Geometry', 'atom order index')[:natoms]]
+    satoms = [
+        xatoms[aatoms[order - 1] - 1]
+        for order in t21.read("Geometry", "atom order index")[:natoms]
+    ]
 
-    nstep_fw = t21.read('IRC_Forward', 'CurrentPoint')
-    nstep_bw = t21.read('IRC_Backward', 'CurrentPoint')
-    geometries_fw = t21.read('IRC_Forward', 'xyz')[0:nstep_fw * natoms * 3]
-    geometries_bw = t21.read('IRC_Backward', 'xyz')[0:nstep_bw * natoms * 3]
-    geometries_init = t21.read('IRC', 'xyz')
+    nstep_fw = t21.read("IRC_Forward", "CurrentPoint")
+    nstep_bw = t21.read("IRC_Backward", "CurrentPoint")
+    geometries_fw = t21.read("IRC_Forward", "xyz")[0 : nstep_fw * natoms * 3]
+    geometries_bw = t21.read("IRC_Backward", "xyz")[0 : nstep_bw * natoms * 3]
+    geometries_init = t21.read("IRC", "xyz")
 
     # Reformat geometries into a long list of geometries for each step
     geometries_bw = coordinates_from_list(geometries_bw, natoms)
@@ -97,7 +107,13 @@ def IRC_coordinates_from_t21(input_file):
 
     geometries = geometries_fw + geometries_init + geometries_bw
 
-    return [[[s, mol[0], mol[1], mol[2]] for i, (s, mol) in enumerate(zip(satoms, molecule))] for molecule in geometries]
+    return [
+        [
+            [s, mol[0], mol[1], mol[2]]
+            for i, (s, mol) in enumerate(zip(satoms, molecule))
+        ]
+        for molecule in geometries
+    ]
 
 
 def coordinates_from_list(coordinates_list, natoms):
@@ -122,7 +138,7 @@ def list_chunks(list, n):
         /!\ Does not care about the end of the list if len(list) is not a multiple of n
     """
     for i in range(0, len(list), n):
-        yield list[i:i + n]
+        yield list[i : i + n]
 
 
 def prepare_NBO_computation(geometry, runparameters):
@@ -130,23 +146,31 @@ def prepare_NBO_computation(geometry, runparameters):
         Taking a geometry and a set of ADF parameters (Basis set, Functional, ZORA, etc)
         Add the NBO Necessary keywords and returns the plams job
     """
-    nbo_script = '\n'.join(['"$ADFBIN/adfnbo" << eor',
-                            'write',
-                            'spherical',
-                            'nbo-analysis',
-                            'eor',
-                            '',
-                            '"$ADFBIN/gennbo6" FILE47',
-                            '',
-                            '"$ADFBIN/adfnbo" <<eor',
-                            'spherical',
-                            'fock',
-                            'read',
-                            'end input',
-                            'eor'])
+    nbo_script = "\n".join(
+        [
+            '"$ADFBIN/adfnbo" << eor',
+            "write",
+            "spherical",
+            "nbo-analysis",
+            "eor",
+            "",
+            '"$ADFBIN/gennbo6" FILE47',
+            "",
+            '"$ADFBIN/adfnbo" <<eor',
+            "spherical",
+            "fock",
+            "read",
+            "end input",
+            "eor",
+        ]
+    )
     runparameters.runscript.post = nbo_script
 
-    job = ADFJob(name='NBO_Computation', settings=runparameters, molecule=geometry_to_molecule(geometry))
+    job = ADFJob(
+        name="NBO_Computation",
+        settings=runparameters,
+        molecule=geometry_to_molecule(geometry),
+    )
 
     return job
 
@@ -158,11 +182,11 @@ def extract_NBO_charges(output, natoms):
     # Initialize charges list
     charges = []
 
-    with open(output, mode='r') as outFile:
-        line = 'Foobar line'
+    with open(output, mode="r") as outFile:
+        line = "Foobar line"
         while line:
             line = outFile.readline()
-            if 'Summary of Natural Population Analysis:' in line:
+            if "Summary of Natural Population Analysis:" in line:
                 # We have the table we want for the charges
                 # Read five lines to remove the header:
                 # Summary of Natural Population Analysis:
@@ -189,9 +213,9 @@ def print_NBO_charges_to_file(charges_list, file):
     """
         Export NBO charges to a file that one can import in a spreadsheet or gnuplot
     """
-    with open(file, mode='w+') as output_file:
+    with open(file, mode="w+") as output_file:
         for i in range(0, len(charges_list)):
-            output_file.write('     '.join(charges_list[i]) + '\n')
+            output_file.write("     ".join(charges_list[i]) + "\n")
 
 
 def number_of_atoms(input_file):
@@ -199,31 +223,67 @@ def number_of_atoms(input_file):
         Extracts natoms from TAPE21
     """
     t21 = KFReader(input_file)
-    return t21.read('Geometry', 'nr of atoms')
+    return t21.read("Geometry", "nr of atoms")
 
 
 def get_input_arguments():
     """
         Check command line options and accordingly set computation parameters
     """
-    parser = argparse.ArgumentParser(description=help_description(),
-                                     epilog=help_epilog())
+    parser = argparse.ArgumentParser(
+        description=help_description(), epilog=help_epilog()
+    )
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('input_file', type=str, nargs=1,
-                        help='TAPE21 Containg IRC path')
-    parser.add_argument('output_file', type=str, nargs=1,
-                        help='Output file in which to print the NBO charges')
-    parser.add_argument('-f', '--functional', type=str, nargs='?', default='BLYP-D3',
-                        help='Functional used for the computation, as BLYP-D3 or BP86\n'
-                             'Hyphen will split into functional/dispersion parts when applicable')
-    parser.add_argument('-r', '--relativistic', type=str, nargs='?', default='None',
-                        help='Relativistic effects: Scalar, Spin-Orbit or None (default)')
-    parser.add_argument('-b', '--basisset', type=str, nargs='?', default='DZP',
-                        help='The basis set to use for all atoms')
-    parser.add_argument('-c', '--frozencore', type=str, nargs='?', default='None',
-                        help='Frozen core to use: None (Default), Small, Large')
-    parser.add_argument('-i', '--integrationquality', type=str, nargs='?', default='Good',
-                        help='Numerical Integration Quality. Default: Good')
+    parser.add_argument(
+        "input_file", type=str, nargs=1, help="TAPE21 Containg IRC path"
+    )
+    parser.add_argument(
+        "output_file",
+        type=str,
+        nargs=1,
+        help="Output file in which to print the NBO charges",
+    )
+    parser.add_argument(
+        "-f",
+        "--functional",
+        type=str,
+        nargs="?",
+        default="BLYP-D3",
+        help="Functional used for the computation, as BLYP-D3 or BP86\n"
+        "Hyphen will split into functional/dispersion parts when applicable",
+    )
+    parser.add_argument(
+        "-r",
+        "--relativistic",
+        type=str,
+        nargs="?",
+        default="None",
+        help="Relativistic effects: Scalar, Spin-Orbit or None (default)",
+    )
+    parser.add_argument(
+        "-b",
+        "--basisset",
+        type=str,
+        nargs="?",
+        default="DZP",
+        help="The basis set to use for all atoms",
+    )
+    parser.add_argument(
+        "-c",
+        "--frozencore",
+        type=str,
+        nargs="?",
+        default="None",
+        help="Frozen core to use: None (Default), Small, Large",
+    )
+    parser.add_argument(
+        "-i",
+        "--integrationquality",
+        type=str,
+        nargs="?",
+        default="Good",
+        help="Numerical Integration Quality. Default: Good",
+    )
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as error:
@@ -231,23 +291,33 @@ def get_input_arguments():
         sys.exit(2)
 
     # Get values from parser
-    values = dict.fromkeys(['input_file', 'output_file', 'functional', 'dispersion', 'relativistic',
-                            'basisset', 'frozencore', 'integrationquality'])
-    values['input_file'] = os.path.basename(args.input_file[0])
-    values['output_file'] = os.path.basename(args.output_file[0])
-    functional = args.functional.split('-')
-    values['functional'] = functional[0]
+    values = dict.fromkeys(
+        [
+            "input_file",
+            "output_file",
+            "functional",
+            "dispersion",
+            "relativistic",
+            "basisset",
+            "frozencore",
+            "integrationquality",
+        ]
+    )
+    values["input_file"] = os.path.basename(args.input_file[0])
+    values["output_file"] = os.path.basename(args.output_file[0])
+    functional = args.functional.split("-")
+    values["functional"] = functional[0]
     if len(functional) > 1:
-        if functional[1] == 'GD3' or functional[1] == 'D3':
-            values['dispersion'] = 'Grimme3'
-        elif functional[1] == 'GD3BJ':
-            values['dispersion'] = 'Grimme3 BJDAMP'
+        if functional[1] == "GD3" or functional[1] == "D3":
+            values["dispersion"] = "Grimme3"
+        elif functional[1] == "GD3BJ":
+            values["dispersion"] = "Grimme3 BJDAMP"
     else:
-        values['dispersion'] = None
-    values['relativistic'] = args.relativistic
-    values['basisset'] = args.basisset
-    values['frozencore'] = args.frozencore
-    values['integrationquality'] = args.integrationquality
+        values["dispersion"] = None
+    values["relativistic"] = args.relativistic
+    values["basisset"] = args.basisset
+    values["frozencore"] = args.frozencore
+    values["integrationquality"] = args.integrationquality
     return values
 
 
@@ -256,17 +326,17 @@ def get_settings(values):
         Retrieve settings from command line, and set them up
     """
     settings = Settings()
-    settings.input.XC.GGA = values['functional']
-    if values['dispersion'] is not None:
-        settings.input.XC.DISPERSION = values['dispersion']
-    settings.input.BASIS.type = values['basisset']
-    settings.input.BASIS.core = values['frozencore']
-    settings.input.BASIS.createoutput = 'None'
-    settings.input.NumericalQuality = values['integrationquality']
-    settings.input.RELATIVISTIC = values['relativistic'] + " ZORA"
-    settings.input.AOMAT2FILE = ''
-    settings.input.SAVE = 'TAPE15'
-    settings.input.FULLFOCK = ''
+    settings.input.XC.GGA = values["functional"]
+    if values["dispersion"] is not None:
+        settings.input.XC.DISPERSION = values["dispersion"]
+    settings.input.BASIS.type = values["basisset"]
+    settings.input.BASIS.core = values["frozencore"]
+    settings.input.BASIS.createoutput = "None"
+    settings.input.NumericalQuality = values["integrationquality"]
+    settings.input.RELATIVISTIC = values["relativistic"] + " ZORA"
+    settings.input.AOMAT2FILE = ""
+    settings.input.SAVE = "TAPE15"
+    settings.input.FULLFOCK = ""
     settings.input.NOPRINT = "LOGFILE"
     settings.input.SYMMETRY = "NOSYM"
 
@@ -277,15 +347,15 @@ def help_description():
     """
         Returns description of program for help message
     """
-    return 'Help Description // To fill'
+    return "Help Description // To fill"
 
 
 def help_epilog():
     """
         Returns additionnal help message
     """
-    return 'Help epilog // To Fill'
+    return "Help epilog // To Fill"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
