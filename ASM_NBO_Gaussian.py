@@ -204,7 +204,7 @@ def IRC_coordinates_from_input(input_file):
     file = ccread(input_file, optdone_as_list=True)
     new_indexes = [x for x, y in enumerate(file.optstatus) if y & file.OPT_NEW > 0]
     # new_indexes finishes with 0, so has to finish with -1 for the last index.
-    last_indexes = [x - 1 for x in new_indexes[1 : len(new_indexes)] + [new_indexes[0]]]
+    last_indexes = [x - 1 for x in new_indexes[1:len(new_indexes)] + [new_indexes[0]]]
     # file.atomcoords is an ndarray, so can be accessed with a list!
     coordinates = file.atomcoords[last_indexes]
     return coordinates.tolist()
@@ -562,8 +562,7 @@ def gaussian_header(args):
     args is the dictionary coming from parsing the command line
     """
     logger = logging.getLogger()
-    header = []
-    header.append("%NProcShared=1")
+    header = ["%NProcShared=1"]
     # header.append('%Mem=' + args['memory'])
     route = "# " + args["functional"] + " "
     if args["dispersion"] is not None:
@@ -584,7 +583,7 @@ def gaussian_header(args):
 
 def gaussian_footer(args, element_list_frag):
     """
-    Return the top part used for the Gaussian calculation.
+    Return the bottom part used for the Gaussian calculation.
 
     It is a list of strings.
     args is the dictionary coming from parsing the command line
