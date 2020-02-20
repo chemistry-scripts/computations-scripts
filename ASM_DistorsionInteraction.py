@@ -3,11 +3,8 @@ import sys
 import argparse
 import scm.plams as plams
 
-reader = plams.KFReader("CO2-HBH2-NBO.t21")
-
-reader.read("NBOs", "Label_1")
-
-reader.read("General", "termination status")
+reader = plams.KFReader("test/CO2-HBH2-IRC.t21")
+print(reader.read("General", "termination status"))
 
 
 def main():
@@ -15,16 +12,14 @@ def main():
         The main function.
         Reads input, sends it to a parser, then sets up the computation
     """
-    parse_args(args)
+    parse_args()
 
 
-def parse_args(args):
+def parse_args():
     """
         The argument parser
     """
-    parser = argparse.ArgumentParser(
-        description=help_description(), epilog=help_epilog()
-    )
+    parser = argparse.ArgumentParser(description="Cheap PyFrag implementation")
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument(
         "-n",
