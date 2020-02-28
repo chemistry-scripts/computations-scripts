@@ -2,7 +2,9 @@ import os
 import sys
 import argparse
 import logging
-import scm.plams
+import scm.plams as plams
+import numpy as np
+
 
 def main():
     """
@@ -22,8 +24,10 @@ def main():
     logger.addHandler(stream_handler)
 
     # Parse command line arguments
-    parse_args()
-    scm.plams.read_molecules()
+    args = parse_args()
+
+    geometries = get_IRC_geometries(args)
+    print(np.shape(geometries))
 
 
 def parse_args():
@@ -52,7 +56,7 @@ def parse_args():
         nargs="?",
         default="B3LYP-D3",
         help="Functional used for the computation, as B3LYP-D3 or M062X\n"
-             "Hyphen will split into functional/dispersion parts when applicable",
+        "Hyphen will split into functional/dispersion parts when applicable",
     )
     parser.add_argument(
         "-b",
@@ -68,8 +72,8 @@ def parse_args():
         type=str,
         nargs="*",
         help="Useful data to extract, such as bonds or angles\n"
-             "Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n"
-             "or D 3 8 9 1 (Dihedral 3-8-9-1)",
+        "Write as B 1 2 (bond between atoms 1 and 2), A 3 5 4 (Angle 3-5-4)\n"
+        "or D 3 8 9 1 (Dihedral 3-8-9-1)",
     )
     parser.add_argument(
         "-r",
@@ -77,9 +81,9 @@ def parse_args():
         type=int,
         nargs="*",
         help="List of atoms in one of the fragments to consider.\n"
-             "If absent, fragmentation is not considered.\n"
-             "If present, all listed atoms (as numbers in geometry) are used in\n"
-             "Frag 1, while others are added to Frag 0.\n",
+        "If absent, fragmentation is not considered.\n"
+        "If present, all listed atoms (as numbers in geometry) are used in\n"
+        "Frag 1, while others are added to Frag 0.\n",
     )
     parser.add_argument(
         "-n",
@@ -87,7 +91,7 @@ def parse_args():
         type=bool,
         default=False,
         nargs="?",
-        help="Request NBO calculations at every point"
+        help="Request NBO calculations at every point",
     )
 
     try:
@@ -104,12 +108,12 @@ def parse_args():
             "basis_set",
             "data",
             "fragment",
-            "NBO"
+            "NBO",
         ]
     )
     # Get values from parser
-    run_values["input_file"] = os.path.basename(args.input_file[0])
-    run_values["output_file"] = os.path.basename(args.output_file[0])
+    run_values["input_file"] = [args.input_file[0]]  # os.path.basename ?
+    run_values["output_file"] = args.output_file[0]
     run_values["functional"] = args.functional
     run_values["basis_set"] = args.basis_set
     # Parse data to extract
@@ -149,7 +153,9 @@ def parse_args():
         run_values["frag1"] = args.fragment
         natoms = number_of_atoms(run_values["input_file"][0])
         atoms = range(1, natoms + 1)
-        run_values["frag0"] = [atom for atom in atoms if atom not in run_values["frag1"]]
+        run_values["frag0"] = [
+            atom for atom in atoms if atom not in run_values["frag1"]
+        ]
     else:
         run_values["frag1"] = []
         run_values["frag0"] = [
@@ -164,7 +170,33 @@ def parse_args():
 
 def number_of_atoms(file):
     """Return number of atoms from TAPE21 file"""
-    reader = ADFJob()
+    reader = plams.KFReader(file)
+    return reader.read("Geometry", "nnuc")
+
+
+def get_IRC_geometries(args):
+    file = plams.KFFile(args["input_file"][0])
+    natoms = number_of_atoms(args["input_file"][0])
+    if "IRC_Forward" in file:
+        geom_crude = file.read("IRC_Forward", "xyz")
+        logging.info("Forward IRC size: " + str(np.shape(geom_crude)))
+        geom_forward = np.reshape(geom_crude, (-1, 3, natoms))
+        logging.info("Forward IRC size: " + str(np.shape(geom_forward)))
+
+    if "IRC_Backward" in file:
+        geom_crude = file.read("IRC_Backward", "xyz")
+        logging.info("Backward IRC size: " + str(np.shape(geom_crude)))
+        geom_backward = np.reshape(geom_crude, (-1, 3, natoms))
+        logging.info("Backward IRC shape: " + str(np.shape(geom_backward)))
+
+    if geom_backward in dir() and geom_forward in dir():
+        return np.concatenate(geom_forward, geom_backward)
+    elif geom_backward in dir():
+        return geom_backward
+    elif geom_forward in dir():
+        return geom_forward
+    else:
+        raise ValueError("No IRC data in file")
 
 
 def help_description():
