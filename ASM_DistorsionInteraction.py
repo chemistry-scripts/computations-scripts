@@ -177,26 +177,19 @@ def number_of_atoms(file):
 def get_IRC_geometries(args):
     file = plams.KFFile(args["input_file"][0])
     natoms = number_of_atoms(args["input_file"][0])
+
+    geom_forward = []
+    geom_backward = []
+
     if "IRC_Forward" in file:
-        geom_crude = file.read("IRC_Forward", "xyz")
-        logging.info("Forward IRC size: " + str(np.shape(geom_crude)))
-        geom_forward = np.reshape(geom_crude, (-1, 3, natoms))
-        logging.info("Forward IRC size: " + str(np.shape(geom_forward)))
+        geom_forward = file.read("IRC_Forward", "xyz")
+        logging.info("Forward IRC number of steps: " + str(len(geom_forward)/(3*natoms)))
 
     if "IRC_Backward" in file:
-        geom_crude = file.read("IRC_Backward", "xyz")
-        logging.info("Backward IRC size: " + str(np.shape(geom_crude)))
-        geom_backward = np.reshape(geom_crude, (-1, 3, natoms))
-        logging.info("Backward IRC shape: " + str(np.shape(geom_backward)))
+        geom_backward = file.read("IRC_Backward", "xyz")
+        logging.info("Backward IRC number of steps: " + str(len(geom_backward)/(3*natoms)))
 
-    if geom_backward in dir() and geom_forward in dir():
-        return np.concatenate(geom_forward, geom_backward)
-    elif geom_backward in dir():
-        return geom_backward
-    elif geom_forward in dir():
-        return geom_forward
-    else:
-        raise ValueError("No IRC data in file")
+    return np.reshape(geom_backward + geom_forward, (-1, 3, natoms))
 
 
 def help_description():
