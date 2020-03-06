@@ -25,9 +25,33 @@ def main():
 
     # Parse command line arguments
     args = parse_args()
+    n_atoms = number_of_atoms(args["input_file"][0])
 
-    geometries = get_IRC_geometries(args)
-    print(np.shape(geometries))
+    # Get geometries from IRC files
+    geometries = np.empty([0, 3, n_atoms])
+    for file in args["input_file"]:
+        geometries = np.concatenate([geometries, get_IRC_geometries(file)])
+        logging.debug(np.shape(geometries))
+
+    # Get atom list and type
+    atom_list = []
+
+    # Setup ADF Job settings
+    settings = plams.Settings()
+    settings.input.geometry.sp = True
+    settings.input.basis.type = args["basis_set"]
+    settings.input.xc.gga = args["functional"]
+
+    # Setup list of computations for each geometry
+    job_list = []
+    for geom in geometries:
+        # Build molecule
+        mol = plams.Molecule()
+        for atom, coords in zip(atom_list, geom):
+            mol.add_atom(plams.Atom(symbol=atom, coords=coords))
+
+        # Build actual job
+        job = plams.ADFJob(molecule=mol, settings=settings)
 
 
 def parse_args():
@@ -174,20 +198,24 @@ def number_of_atoms(file):
     return reader.read("Geometry", "nnuc")
 
 
-def get_IRC_geometries(args):
-    file = plams.KFFile(args["input_file"][0])
-    natoms = number_of_atoms(args["input_file"][0])
+def get_IRC_geometries(input_file):
+    file = plams.KFFile(input_file)
+    natoms = number_of_atoms(input_file)
 
     geom_forward = []
     geom_backward = []
 
     if "IRC_Forward" in file:
         geom_forward = file.read("IRC_Forward", "xyz")
-        logging.info("Forward IRC number of steps: " + str(len(geom_forward)/(3*natoms)))
+        logging.info(
+            "Forward IRC number of steps: " + str(len(geom_forward) / (3 * natoms))
+        )
 
     if "IRC_Backward" in file:
         geom_backward = file.read("IRC_Backward", "xyz")
-        logging.info("Backward IRC number of steps: " + str(len(geom_backward)/(3*natoms)))
+        logging.info(
+            "Backward IRC number of steps: " + str(len(geom_backward) / (3 * natoms))
+        )
 
     return np.reshape(geom_backward + geom_forward, (-1, 3, natoms))
 
