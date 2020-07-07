@@ -121,7 +121,9 @@ def main():
             executor.submit(job.run)
 
     # NBO_values is a list of list of charges
+    # SCF_energies is a list of energies
     NBO_values = [job.extract_NBO_charges() for job in gaussian_jobs]
+    SCF_energies = [job.get_scf_energy() for job in gaussian_jobs]
     job_ids = [job.job_id for job in gaussian_jobs]
 
     # Compute distances, angles and dihedrals when necessary
@@ -135,6 +137,7 @@ def main():
     # Write NBO data
     print_NBO_charges_to_file(
         charges_list=NBO_values,
+        energies_list=SCF_energies,
         out_file=output_file,
         measures=measured_data,
         job_ids=job_ids,
@@ -291,7 +294,7 @@ def prepare_NBO_computation(
     return GaussianJob(basedir, name, input_file, job_id, natoms)
 
 
-def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
+def print_NBO_charges_to_file(charges_list, energies_list, out_file, measures, job_ids):
     """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
     logger = logging.getLogger()
     with open(out_file, mode="w+") as output_file:
@@ -304,9 +307,16 @@ def print_NBO_charges_to_file(charges_list, out_file, measures, job_ids):
             logger.debug("Charges: %s", charges_list[i])
             logger.debug("Type: %s", type(charges_list[i][0]))
 
+            # Job_id to start the line
             line = str(job_id).ljust(5)
+
+            # Include SCF energy value
+            line += "{0:.8f}".format(float(energies_list[i])).rjust(20)
+
             # Separate job_id and measures
             line += " "
+
+            # Values of measurements
             if measures:
                 # Each measure has a maximum of three digits before decimal separation, plus a sign.
                 # It is thus maximum (with rounding to three digits after decimal) 8 in length.
@@ -567,8 +577,8 @@ def gaussian_header(args):
     route = "# " + args["functional"] + " "
     if args["dispersion"] is not None:
         route += "EmpiricalDispersion=" + args["dispersion"] + " "
-    # route += "gen pop=(nbo6read)"
-    route += "gen pop=(npa)"
+    route += "gen pop=(nbo6read)"
+    # route += "gen pop=(npa)"
     header.append(route)
     header.append("")
     # To update probably
@@ -601,11 +611,11 @@ def gaussian_footer(args, element_list_frag):
     footer.append("****")
     footer.append("")
 
-    # footer.append("$NBO")
-    # # NBO_FILES should be updated to something more useful
+    footer.append("$NBO")
+    # NBO_FILES should be updated to something more useful
     # footer.append("FILE=NBO_FILES")
     # footer.append("PLOT")
-    # footer.append("$END")
+    footer.append("$END")
 
     logger.debug("Footer: \n %s", "\n".join(footer))
 
@@ -664,10 +674,25 @@ class GaussianJob:
         logger.info("Starting computation %s", str(self.job_id))
         # Get into workdir, start gaussian, then back to basedir
         os.chdir(self.path)
-        os.system("g09 < " + self.input_filename + " > " + self.output_filename)
+        os.system("g16 < " + self.input_filename + " > " + self.output_filename)
         os.chdir(self.basedir)
         # Log end of computation
         logger.info("Finished computation %s", str(self.job_id))
+
+    def get_scf_energy(self):
+        """Extract energies from output file"""
+        # Log start
+        logger = logging.getLogger()
+        logger.info("Extracting energy for job %s", str(self.job_id))
+
+        # Get into working directory
+        os.chdir(self.path)
+
+        # Parse file with cclib
+        data = ccread(self.output_filename)
+
+        #  Return the first coordinates, since it is a single point
+        return data.scfenergies[0]
 
     def extract_NBO_charges(self):
         """Extract NBO Charges parsing the output file."""
