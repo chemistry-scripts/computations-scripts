@@ -728,7 +728,7 @@ class GaussianJob:
         self.basedir = basedir
         # Set path as: /base/directory/my_name.000xx/
         self.path = os.path.join(
-            self.basedir, self.name.replace(" ", "_") + "." + str(self.job_id).zfill(4)
+            self.basedir, self.name.replace(" ", "_")
         )
         self.input_filename = self.name.replace(" ", "_") + ".com"
         self.output_filename = self.name.replace(" ", "_") + ".log"
