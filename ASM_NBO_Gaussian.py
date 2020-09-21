@@ -86,7 +86,6 @@ def main():
 
     gaussian_jobs = []
     # Prep a bunch of NBO computations
-
     # ##-## Full molecule
     for i, geom in enumerate(geometries):
         job_name = "full_" + str(i).zfill(4)
@@ -737,17 +736,17 @@ class GaussianJob:
         """Start the job."""
         # Log computation start
         logger = logging.getLogger()
-        logger.info("Starting computation %s", str(self.job_id))
+        logger.info("Starting computation %s", str(self.name))
         # Get into workdir, start gaussian, then back to basedir
         os.system("cd " + self.path + "; export GAUSS_SCRDIR=" + self.path + "; g16 < " + self.input_filename + " > " + self.output_filename)
         # Log end of computation
-        logger.info("Finished computation %s", str(self.job_id))
+        logger.info("Finished computation %s", str(self.name))
 
     def get_scf_energy(self):
         """Extract energies from output file"""
         # Log start
         logger = logging.getLogger()
-        logger.info("Extracting energy for job %s", str(self.job_id))
+        logger.info("Extracting energy for job %s", str(self.name))
 
         # Get into working directory
         os.chdir(self.path)
@@ -762,7 +761,7 @@ class GaussianJob:
         """Extract NBO Charges parsing the output file."""
         # Log start
         logger = logging.getLogger()
-        logger.info("Parsing results from computation %s", str(self.job_id))
+        logger.info("Parsing results from computation %s", str(self.name))
 
         # Get into working directory
         os.chdir(self.path)
