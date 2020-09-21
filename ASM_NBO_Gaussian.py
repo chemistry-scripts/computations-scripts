@@ -80,11 +80,31 @@ def main():
     # Get settings as a tuple
     logger.debug("Getting Gaussian input parameters")
     settings_head = gaussian_header(args)
+    settings_tail_full = gaussian_footer(args, element_list)
     settings_tail_frag0 = gaussian_footer(args, element_list_frag0)
     settings_tail_frag1 = gaussian_footer(args, element_list_frag1)
 
     gaussian_jobs = []
     # Prep a bunch of NBO computations
+
+    # ##-## Full molecule
+    for i, geom in enumerate(geometries):
+        job_name = "full_" + str(i).zfill(4)
+        gaussian_jobs.append(
+            prepare_NBO_computation(
+                basedir=basedir,
+                name=job_name,
+                geometry=geom,
+                job_id=i,
+                header=settings_head,
+                footer=settings_tail_full,
+                natoms=natoms,
+                element_list=element_list,
+                fragment=None,
+            )
+        )
+
+    # ##-## Fragment 0
     for i, geom in enumerate(geometries_fragment0):
         job_name = "frag0_" + str(i).zfill(4)
         gaussian_jobs.append(
@@ -97,8 +117,11 @@ def main():
                 footer=settings_tail_frag0,
                 natoms=natoms_frag0,
                 element_list=element_list_frag0,
+                fragment=0,
             )
         )
+
+    # ##-## Fragment 1
     for i, geom in enumerate(geometries_fragment1):
         job_name = "frag1_" + str(i).zfill(4)
         gaussian_jobs.append(
@@ -111,6 +134,7 @@ def main():
                 footer=settings_tail_frag1,
                 natoms=natoms_frag1,
                 element_list=element_list_frag1,
+                fragment=1,
             )
         )
 
@@ -124,11 +148,32 @@ def main():
 
     # NBO_values is a list of list of charges
     # SCF_energies is a list of energies
-    NBO_values = [job.extract_NBO_charges() for job in gaussian_jobs]
-    SCF_energies = [job.get_scf_energy() for job in gaussian_jobs]
-    job_ids = [job.job_id for job in gaussian_jobs]
+    nbo_values_full = [
+        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment is None
+    ]
+    nbo_values_frag0 = [
+        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 0
+    ]
+    nbo_values_frag1 = [
+        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 1
+    ]
+
+    scf_energies_full = [
+        job.get_scf_energy() for job in gaussian_jobs if job.fragment is None
+    ]
+    scf_energies_frag0 = [
+        job.get_scf_energy() for job in gaussian_jobs if job.fragment == 0
+    ]
+    scf_energies_frag1 = [
+        job.get_scf_energy() for job in gaussian_jobs if job.fragment == 1
+    ]
+
+    job_ids_full = [job.job_id for job in gaussian_jobs if job.fragment is None]
+    job_ids_frag0 = [job.job_id for job in gaussian_jobs if job.fragment == 0]
+    job_ids_frag1 = [job.job_id for job in gaussian_jobs if job.fragment == 1]
 
     # Compute distances, angles and dihedrals when necessary
+    # TODO: Double check how this works within fragments.
     measured_data = []
     logger.debug("Data to extract: %s", args["data"])
     if args["data"]:
@@ -136,13 +181,31 @@ def main():
         measured_data = [
             compute_measurements(coord, args["data"]) for coord in coordinates
         ]
-    # Write NBO data
+    # ENDTODO
+
+    # Write NBO data - Full molecules
     print_NBO_charges_to_file(
-        charges_list=NBO_values,
-        energies_list=SCF_energies,
+        charges_list=nbo_values_full,
+        energies_list=scf_energies_full,
         out_file=output_file,
         measures=measured_data,
-        job_ids=job_ids,
+        job_ids=job_ids_full,
+    )
+    # Write NBO data - Frag 0
+    print_NBO_charges_to_file(
+        charges_list=nbo_values_frag0,
+        energies_list=scf_energies_frag0,
+        out_file=output_file,
+        measures=measured_data,
+        job_ids=job_ids_frag0,
+    )
+    # Write NBO data - FRag 1
+    print_NBO_charges_to_file(
+        charges_list=nbo_values_frag1,
+        energies_list=scf_energies_frag1,
+        out_file=output_file,
+        measures=measured_data,
+        job_ids=job_ids_frag1,
     )
 
 
@@ -209,7 +272,7 @@ def IRC_coordinates_from_input(input_file):
     file = ccread(input_file, optdone_as_list=True)
     new_indexes = [x for x, y in enumerate(file.optstatus) if y & file.OPT_NEW > 0]
     # new_indexes finishes with 0, so has to finish with -1 for the last index.
-    last_indexes = [x - 1 for x in new_indexes[1:len(new_indexes)] + [new_indexes[0]]]
+    last_indexes = [x - 1 for x in new_indexes[1 : len(new_indexes)] + [new_indexes[0]]]
     # file.atomcoords is an ndarray, so can be accessed with a list!
     coordinates = file.atomcoords[last_indexes]
     return coordinates.tolist()
@@ -260,7 +323,7 @@ def dihedral_from_coordinates(coord1, coord2, coord3, coord4):
 
 
 def prepare_NBO_computation(
-    basedir, name, geometry, job_id, header, footer, natoms, element_list
+    basedir, name, geometry, job_id, header, footer, natoms, element_list, fragment
 ):
     """
     From geometry, header, footer, create the input file.
@@ -293,7 +356,7 @@ def prepare_NBO_computation(
     input_file.append("")
     input_file.append("")
 
-    return GaussianJob(basedir, name, input_file, job_id, natoms)
+    return GaussianJob(basedir, name, input_file, job_id, natoms, fragment)
 
 
 def print_NBO_charges_to_file(charges_list, energies_list, out_file, measures, job_ids):
@@ -556,7 +619,7 @@ def get_input_arguments():
     else:
         values["frag1"] = []
         values["frag0"] = [
-            atom for atom in range(1, number_of_atoms(values["input_file"][0] + 1))
+            atom for atom in range(1, number_of_atoms(values["input_file"][0]) + 1)
         ]
 
     logger.debug("Fragment 0: %s", values["frag0"])
@@ -652,7 +715,7 @@ class GaussianJob:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, basedir, name, input_script, job_id, natoms):
+    def __init__(self, basedir, name, input_script, job_id, natoms, fragment=None):
         """Build  the GaussianJob class."""
         # pylint: disable=too-many-arguments
         # We need them all
@@ -660,6 +723,7 @@ class GaussianJob:
         self.input_script = input_script
         self.job_id = job_id
         self.natoms = natoms
+        self.fragment = fragment
         # base directory from which all computations are started
         self.basedir = basedir
         # Set path as: /base/directory/my_name.000xx/
