@@ -739,9 +739,7 @@ class GaussianJob:
         logger = logging.getLogger()
         logger.info("Starting computation %s", str(self.job_id))
         # Get into workdir, start gaussian, then back to basedir
-        os.chdir(self.path)
-        os.system("g16 < " + self.input_filename + " > " + self.output_filename)
-        os.chdir(self.basedir)
+        os.system("cd " + self.path + "; export GAUSS_SCRDIR=" + self.path + "; g16 < " + self.input_filename + " > " + self.output_filename)
         # Log end of computation
         logger.info("Finished computation %s", str(self.job_id))
 
