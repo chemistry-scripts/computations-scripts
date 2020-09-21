@@ -86,10 +86,11 @@ def main():
     gaussian_jobs = []
     # Prep a bunch of NBO computations
     for i, geom in enumerate(geometries_fragment0):
+        job_name = "frag0_" + str(i).zfill(4)
         gaussian_jobs.append(
             prepare_NBO_computation(
                 basedir=basedir,
-                name="ASM_NBO_frag0",
+                name=job_name,
                 geometry=geom,
                 job_id=i,
                 header=settings_head,
@@ -99,10 +100,11 @@ def main():
             )
         )
     for i, geom in enumerate(geometries_fragment1):
+        job_name = "frag1_" + str(i).zfill(4)
         gaussian_jobs.append(
             prepare_NBO_computation(
                 basedir=basedir,
-                name="ASM_NBO_frag1",
+                name=job_name,
                 geometry=geom,
                 job_id=i,
                 header=settings_head,
