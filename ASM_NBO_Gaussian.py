@@ -172,15 +172,13 @@ def main():
     job_ids_frag1 = [job.job_id for job in gaussian_jobs if job.fragment == 1]
 
     # Compute distances, angles and dihedrals when necessary
-    # TODO: Double check how this works within fragments.
     measured_data = []
     logger.debug("Data to extract: %s", args["data"])
     if args["data"]:
-        coordinates = [job.get_coordinates() for job in gaussian_jobs]
+        coordinates = [job.get_coordinates() for job in gaussian_jobs if job.fragment is None]
         measured_data = [
             compute_measurements(coord, args["data"]) for coord in coordinates
         ]
-    # ENDTODO
 
     # Write NBO data - Full molecules
     print_NBO_charges_to_file(
