@@ -145,65 +145,8 @@ def main():
         for job in gaussian_jobs:
             executor.submit(job.run)
 
-    # NBO_values is a list of list of charges
-    # SCF_energies is a list of energies
-    nbo_values_full = [
-        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment is None
-    ]
-    nbo_values_frag0 = [
-        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 0
-    ]
-    nbo_values_frag1 = [
-        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 1
-    ]
-
-    scf_energies_full = [
-        job.get_scf_energy() for job in gaussian_jobs if job.fragment is None
-    ]
-    scf_energies_frag0 = [
-        job.get_scf_energy() for job in gaussian_jobs if job.fragment == 0
-    ]
-    scf_energies_frag1 = [
-        job.get_scf_energy() for job in gaussian_jobs if job.fragment == 1
-    ]
-
-    job_ids_full = [job.job_id for job in gaussian_jobs if job.fragment is None]
-    job_ids_frag0 = [job.job_id for job in gaussian_jobs if job.fragment == 0]
-    job_ids_frag1 = [job.job_id for job in gaussian_jobs if job.fragment == 1]
-
-    # Compute distances, angles and dihedrals when necessary
-    measured_data = []
-    logger.debug("Data to extract: %s", args["data"])
-    if args["data"]:
-        coordinates = [job.get_coordinates() for job in gaussian_jobs if job.fragment is None]
-        measured_data = [
-            compute_measurements(coord, args["data"]) for coord in coordinates
-        ]
-
-    # Write NBO data - Full molecules
-    print_NBO_charges_to_file(
-        charges_list=nbo_values_full,
-        energies_list=scf_energies_full,
-        out_file=output_file,
-        measures=measured_data,
-        job_ids=job_ids_full,
-    )
-    # Write NBO data - Frag 0
-    print_NBO_charges_to_file(
-        charges_list=nbo_values_frag0,
-        energies_list=scf_energies_frag0,
-        out_file=output_file,
-        measures=measured_data,
-        job_ids=job_ids_frag0,
-    )
-    # Write NBO data - FRag 1
-    print_NBO_charges_to_file(
-        charges_list=nbo_values_frag1,
-        energies_list=scf_energies_frag1,
-        out_file=output_file,
-        measures=measured_data,
-        job_ids=job_ids_frag1,
-    )
+    # Print all data to a file
+    print_values_to_file(gaussian_jobs, output_file, args["data"])
 
 
 def compute_measurements(coordinates, required_data):
@@ -356,48 +299,56 @@ def prepare_NBO_computation(
     return GaussianJob(basedir, name, input_file, job_id, natoms, fragment)
 
 
-def print_NBO_charges_to_file(charges_list, energies_list, out_file, measures, job_ids):
-    """Export NBO charges to a file that one can import in a spreadsheet or gnuplot."""
+def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
+    """Export all data to a file"""
     logger = logging.getLogger()
-    with open(out_file, mode="w+") as output_file:
-        for (i, job_id) in enumerate(job_ids):
-            logger.debug("Printing job %s", job_id)
-            logger.debug("Job_id: %s", job_id)
-            if measures:
-                logger.debug("Measures: %s", measures[i])
-                logger.debug("Type: %s", type(measures[i][0]))
-            logger.debug("Charges: %s", charges_list[i])
-            logger.debug("Type: %s", type(charges_list[i][0]))
+    logger.debug("Starting to print data into " + out_file)
 
-            # Job_id to start the line
-            line = str(job_id).ljust(5)
+    # Sort gaussian_jobs according to job_id.
+    gaussian_jobs.sort(key=lambda x: x.job_id)
 
-            # Include SCF energy value
-            line += "{0:.8f}".format(float(energies_list[i])).rjust(20)
+    # Measure data within full molecule
 
-            # Separate job_id and measures
-            line += " "
+    # Compute distances, angles and dihedrals when necessary. Save it as a list of list
+    measured_data = []
+    logger.debug("Data to extract: %s", parameters_to_measure)
+    if parameters_to_measure:
+        coordinates = [
+            job.get_coordinates() for job in gaussian_jobs if job.fragment is None
+        ]
+        measured_data = [
+            compute_measurements(coord, parameters_to_measure) for coord in coordinates
+        ]
 
-            # Values of measurements
-            if measures:
-                # Each measure has a maximum of three digits before decimal separation, plus a sign.
-                # It is thus maximum (with rounding to three digits after decimal) 8 in length.
-                line += " ".join(
-                    "{0:.3f}".format(value).rjust(8) for value in measures[i]
-                )
-            # Separate measures and charges
-            line += " "
-            # Each charge is rounded to three digits after the decimal separator
-            # It is the same length as measures.
-            line += " ".join(
-                [
-                    "{0:.3f}".format(float(charges)).rjust(8)
-                    for charges in charges_list[i]
-                ]
-            )
-            # End of line
-            line += "\n"
-            output_file.write(line)
+    # Extract the lists we want to include
+    job_id = [job.job_id for job in gaussian_jobs if job.fragment is None]
+
+    scf_full = [job.get_scf_energy() for job in gaussian_jobs if job.fragment is None]
+    scf_frag0 = [job.get_scf_energy() for job in gaussian_jobs if job.fragment == 0]
+    scf_frag1 = [job.get_scf_energy() for job in gaussian_jobs if job.fragment == 1]
+
+    nbo_full = [job.extract_NBO_charges() for job in gaussian_jobs if job.fragment is None]
+    nbo_frag0 = [job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 0]
+    nbo_frag1 = [job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 1]
+
+    # Open file
+    with open(out_file, mode="a+") as output_file:
+        # Build the line as:
+        # id, measures, scf_full, scf_frag0, scf_frag1, nbo_full, nbo_frag0, nbo_frag1
+        header = ["job_id", parameters_to_measure["bonds"], parameters_to_measure["angles"], parameters_to_measure["dihedrals"], "scf_full", "scf_frag0", "scf_frag1", "nbo_full", "nbo_frag0", "nbo_frag1"]
+        output_file.write("\t".join(header))
+        for id_, measures, en_full, en_frag0, en_frag1, charge_full, charge_frag0, charge_frag1 in zip(job_id, measured_data, scf_full, scf_frag0, scf_frag1, nbo_full, nbo_frag0, nbo_frag1):
+            line = list()
+            line.append(str(id_))
+            line.append([str(mes) for mes in measures])
+            line.append(en_full)
+            line.append(en_frag0)
+            line.append(en_frag1)
+            line.append(charge_full)
+            line.append(charge_frag0)
+            line.append(charge_frag1)
+
+            output_file.write("\t".join(line))
 
 
 def number_of_atoms(input_file):
