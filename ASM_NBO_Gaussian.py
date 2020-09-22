@@ -724,9 +724,7 @@ class GaussianJob:
         # base directory from which all computations are started
         self.basedir = basedir
         # Set path as: /base/directory/my_name.000xx/
-        self.path = os.path.join(
-            self.basedir, self.name.replace(" ", "_")
-        )
+        self.path = os.path.join(self.basedir, self.name.replace(" ", "_"))
         self.input_filename = self.name.replace(" ", "_") + ".com"
         self.output_filename = self.name.replace(" ", "_") + ".log"
 
@@ -736,7 +734,10 @@ class GaussianJob:
         logger = logging.getLogger()
         logger.info("Starting computation %s", str(self.name))
         # Get into workdir, start gaussian, then back to basedir
-        os.system("cd " + self.path + "; export GAUSS_SCRDIR=" + self.path + "; g16 < " + self.input_filename + " > " + self.output_filename)
+        command = "cd " + self.path + "; "
+        command += "export GAUSS_SCRDIR=" + self.path + "; "
+        command += "g16 < " + self.input_filename + " > " + self.output_filename
+        os.system(command)
         # Log end of computation
         logger.info("Finished computation %s", str(self.name))
 
