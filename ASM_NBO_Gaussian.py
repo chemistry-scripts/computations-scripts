@@ -165,7 +165,7 @@ def compute_measurements(coordinates, required_data):
         ]
     )
 
-    # Extract all bonds
+    # Extract all angles
     extracted_data.extend(
         [
             angle_from_coordinates(
@@ -175,7 +175,7 @@ def compute_measurements(coordinates, required_data):
         ]
     )
 
-    # Extract all bonds
+    # Extract all dihedrals
     extracted_data.extend(
         [
             dihedral_from_coordinates(
