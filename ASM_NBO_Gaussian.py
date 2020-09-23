@@ -370,15 +370,25 @@ def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
 
             # Print job_id
             line.append(str(id_))
-            line.append([str(mes) for mes in measures])
-            line.append(en_full)
-            line.append(en_frag0)
-            line.append(en_frag1)
-            line.append(charge_full)
-            line.append(charge_frag0)
-            line.append(charge_frag1)
 
-            output_file.write("\t".join(line))
+            # Get all measures, formatted with three digits after decimal
+            line.extend("{0:.3f}".format(value) for value in measures)
+
+            # Print energies, with 8 digits after comma
+            line.append("{0:.8f}".format(float(en_full)))
+            line.append("{0:.8f}".format(float(en_frag0)))
+            line.append("{0:.8f}".format(float(en_frag1)))
+
+            # Format list of charges
+            line.extend("{0:.3f}".format(float(charge)) for charge in charge_full)
+            line.extend("{0:.3f}".format(float(charge)) for charge in charge_frag0)
+            line.extend("{0:.3f}".format(float(charge)) for charge in charge_frag1)
+
+            # Print line to output for debugging purposes
+            logger.debug(line)
+
+            # Print tab separated data to file
+            output_file.write("\t".join(line) + "\n")
 
 
 def number_of_atoms(input_file):
