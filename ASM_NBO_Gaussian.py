@@ -146,7 +146,12 @@ def main():
             executor.submit(job.run)
 
     # Print all data to a file
-    print_values_to_file(gaussian_jobs, output_file, args["data"])
+    print_values_to_file(
+        gaussian_jobs,
+        output_file,
+        args["data"],
+        (element_list, element_list_frag0, element_list_frag1),
+    )
 
 
 def compute_measurements(coordinates, required_data):
@@ -299,8 +304,9 @@ def prepare_NBO_computation(
     return GaussianJob(basedir, name, input_file, job_id, natoms, fragment)
 
 
-def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
+def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure, elements_list):
     """Export all data to a file"""
+
     logger = logging.getLogger()
     logger.debug("Starting to print data into " + out_file)
 
@@ -339,11 +345,11 @@ def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
 
     # Open file
     with open(out_file, mode="a+") as output_file:
+        # Write header to file
+        header = file_header(parameters_to_measure, elements_list)
+        output_file.write("\t".join(header) + "\n")
 
-        # Build the line as:
-        # id, measures, scf_full, scf_frag0, scf_frag1, nbo_full, nbo_frag0, nbo_frag1
-        # header = ["job_id", parameters_to_measure["bonds"], parameters_to_measure["angles"], parameters_to_measure["dihedrals"], "scf_full", "scf_frag0", "scf_frag1", "nbo_full", "nbo_frag0", "nbo_frag1"]
-        # output_file.write("\t".join(header))
+        # Iterate over data, build each line with extracted data, and print the whole thing
         for (
             id_,
             measures,
@@ -379,7 +385,7 @@ def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
             line.append("{0:.8f}".format(float(en_frag0)))
             line.append("{0:.8f}".format(float(en_frag1)))
 
-            # Format list of charges
+            # Format list of NBO charges
             line.extend("{0:.3f}".format(float(charge)) for charge in charge_full)
             line.extend("{0:.3f}".format(float(charge)) for charge in charge_frag0)
             line.extend("{0:.3f}".format(float(charge)) for charge in charge_frag1)
@@ -389,6 +395,35 @@ def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
 
             # Print tab separated data to file
             output_file.write("\t".join(line) + "\n")
+
+
+def file_header(parameters_to_measure, elements_list):
+    """File header for output"""
+    # Build the header as a list:
+    # id, measures, scf_full, scf_frag0, scf_frag1, nbo_full, nbo_frag0, nbo_frag1
+    # header = [job_id, parameters_to_measure, energies, NBO charges (with atom numbers)
+
+    header = list()
+    header += ["job_id"]
+
+    # Get parameters to measure, as "B 2 3" "A 3 1 5", etc.
+    for param in parameters_to_measure["bonds"]:
+        header += ["B " + " ".join([str(n) for n in param])]
+    for param in parameters_to_measure["angles"]:
+        header += ["A " + " ".join([str(n) for n in param])]
+    for param in parameters_to_measure["dihedrals"]:
+        header += ["D " + " ".join([str(n) for n in param])]
+
+    # Energies header
+    header += ["SCF full", "SCF Frag0", "SCF Frag1"]
+
+    # NBO headers
+    element_list_full, element_list_frag0, element_list_frag1 = elements_list
+    header += [elem for elem in element_list_full]
+    header += [elem + "_0" for elem in element_list_frag0]
+    header += [elem + "_1" for elem in element_list_frag1]
+
+    return header
 
 
 def number_of_atoms(input_file):
