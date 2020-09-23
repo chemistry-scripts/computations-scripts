@@ -327,18 +327,48 @@ def print_values_to_file(gaussian_jobs, out_file, parameters_to_measure):
     scf_frag0 = [job.get_scf_energy() for job in gaussian_jobs if job.fragment == 0]
     scf_frag1 = [job.get_scf_energy() for job in gaussian_jobs if job.fragment == 1]
 
-    nbo_full = [job.extract_NBO_charges() for job in gaussian_jobs if job.fragment is None]
-    nbo_frag0 = [job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 0]
-    nbo_frag1 = [job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 1]
+    nbo_full = [
+        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment is None
+    ]
+    nbo_frag0 = [
+        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 0
+    ]
+    nbo_frag1 = [
+        job.extract_NBO_charges() for job in gaussian_jobs if job.fragment == 1
+    ]
 
     # Open file
     with open(out_file, mode="a+") as output_file:
+
         # Build the line as:
         # id, measures, scf_full, scf_frag0, scf_frag1, nbo_full, nbo_frag0, nbo_frag1
-        header = ["job_id", parameters_to_measure["bonds"], parameters_to_measure["angles"], parameters_to_measure["dihedrals"], "scf_full", "scf_frag0", "scf_frag1", "nbo_full", "nbo_frag0", "nbo_frag1"]
-        output_file.write("\t".join(header))
-        for id_, measures, en_full, en_frag0, en_frag1, charge_full, charge_frag0, charge_frag1 in zip(job_id, measured_data, scf_full, scf_frag0, scf_frag1, nbo_full, nbo_frag0, nbo_frag1):
+        # header = ["job_id", parameters_to_measure["bonds"], parameters_to_measure["angles"], parameters_to_measure["dihedrals"], "scf_full", "scf_frag0", "scf_frag1", "nbo_full", "nbo_frag0", "nbo_frag1"]
+        # output_file.write("\t".join(header))
+        for (
+            id_,
+            measures,
+            en_full,
+            en_frag0,
+            en_frag1,
+            charge_full,
+            charge_frag0,
+            charge_frag1,
+        ) in zip(
+            job_id,
+            measured_data,
+            scf_full,
+            scf_frag0,
+            scf_frag1,
+            nbo_full,
+            nbo_frag0,
+            nbo_frag1,
+        ):
+            logger.debug("Printing job %s", id_)
+
+            # Initialize line
             line = list()
+
+            # Print job_id
             line.append(str(id_))
             line.append([str(mes) for mes in measures])
             line.append(en_full)
